@@ -5,16 +5,35 @@ from tkinter import messagebox, filedialog
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import os
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Callable
+from PIL import Image as PILImage
 
 # Set appearance mode and color theme
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("dark-blue")
+ctk.set_appearance_mode("light")
+ctk.set_default_color_theme("blue")
+
+# Pantone Color Definitions
+# Pantone 3597C - Light Blue
+PANTONE_3597C = "#00B5D8"  # Light blue
+# Pantone 7683C - Dark Blue
+PANTONE_7683C = "#1E3A8A"  # Dark blue
+# Pantone 659C - Medium Blue
+PANTONE_659C = "#0EA5E9"  # Medium blue
+
+# Color scheme dictionary for easy reference
+INOSYS_COLORS = {
+    "light_blue": PANTONE_3597C,
+    "dark_blue": PANTONE_7683C,
+    "medium_blue": PANTONE_659C,
+    "white": "#FFFFFF",
+    "light_gray": "#F8F9FA",
+    "dark_gray": "#6B7280"
+}
 
 
 class ToothDiagram(ctk.CTkFrame):
@@ -34,22 +53,24 @@ class ToothDiagram(ctk.CTkFrame):
         title: ctk.CTkLabel = ctk.CTkLabel(
             self,
             text="Select Tooth (Universal Numeric Notation)",
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=INOSYS_COLORS["dark_blue"]
         )
         title.pack(pady=10)
 
         # Upper teeth frame
-        upper_frame: ctk.CTkFrame = ctk.CTkFrame(self)
+        upper_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["light_gray"])
         upper_frame.pack(pady=5)
 
         upper_label: ctk.CTkLabel = ctk.CTkLabel(
             upper_frame,
             text="Upper Teeth",
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["dark_blue"]
         )
         upper_label.pack(pady=5)
 
-        upper_teeth_frame: ctk.CTkFrame = ctk.CTkFrame(upper_frame)
+        upper_teeth_frame: ctk.CTkFrame = ctk.CTkFrame(upper_frame, fg_color=INOSYS_COLORS["white"])
         upper_teeth_frame.pack(pady=5)
 
         # Upper teeth (1-16, right to left)
@@ -59,23 +80,28 @@ class ToothDiagram(ctk.CTkFrame):
                 text=str(i),
                 width=40,
                 height=40,
-                command=lambda tooth=i: self.select_tooth(tooth)
+                command=lambda tooth=i: self.select_tooth(tooth),
+                fg_color=INOSYS_COLORS["medium_blue"],
+                hover_color=INOSYS_COLORS["light_blue"],
+                text_color=INOSYS_COLORS["white"],
+                font=ctk.CTkFont(size=12, weight="bold")
             )
             btn.grid(row=0, column=16 - i, padx=2, pady=2)
             self.tooth_buttons[i] = btn
 
         # Lower teeth frame
-        lower_frame: ctk.CTkFrame = ctk.CTkFrame(self)
+        lower_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["light_gray"])
         lower_frame.pack(pady=5)
 
         lower_label: ctk.CTkLabel = ctk.CTkLabel(
             lower_frame,
             text="Lower Teeth",
-            font=ctk.CTkFont(size=12, weight="bold")
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["dark_blue"]
         )
         lower_label.pack(pady=5)
 
-        lower_teeth_frame: ctk.CTkFrame = ctk.CTkFrame(lower_frame)
+        lower_teeth_frame: ctk.CTkFrame = ctk.CTkFrame(lower_frame, fg_color=INOSYS_COLORS["white"])
         lower_teeth_frame.pack(pady=5)
 
         # Lower teeth (17-32, left to right)
@@ -85,7 +111,11 @@ class ToothDiagram(ctk.CTkFrame):
                 text=str(i),
                 width=40,
                 height=40,
-                command=lambda tooth=i: self.select_tooth(tooth)
+                command=lambda tooth=i: self.select_tooth(tooth),
+                fg_color=INOSYS_COLORS["medium_blue"],
+                hover_color=INOSYS_COLORS["light_blue"],
+                text_color=INOSYS_COLORS["white"],
+                font=ctk.CTkFont(size=12, weight="bold")
             )
             btn.grid(row=0, column=i - 17, padx=2, pady=2)
             self.tooth_buttons[i] = btn
@@ -93,10 +123,10 @@ class ToothDiagram(ctk.CTkFrame):
     def select_tooth(self, tooth_num: int) -> None:
         # Reset all buttons to default color
         for btn in self.tooth_buttons.values():
-            btn.configure(fg_color=("gray75", "gray25"))
+            btn.configure(fg_color=INOSYS_COLORS["medium_blue"])
 
         # Highlight selected tooth
-        self.tooth_buttons[tooth_num].configure(fg_color=("green", "green"))
+        self.tooth_buttons[tooth_num].configure(fg_color=INOSYS_COLORS["dark_blue"])
         self.selected_tooth = tooth_num
         self.callback(tooth_num)
 
@@ -107,6 +137,9 @@ class PrimusImplantApp(ctk.CTk):
 
         self.title("Primus Dental Implant Report Generator")
         self.geometry("1000x800")
+
+        # Configure window colors
+        self.configure(fg_color=INOSYS_COLORS["light_gray"])
 
         # Initialize instance variables with type hints
         self.implant_data: pd.DataFrame = pd.DataFrame()
@@ -175,19 +208,33 @@ class PrimusImplantApp(ctk.CTk):
 
     def create_widgets(self) -> None:
         # Main container
-        main_frame: ctk.CTkFrame = ctk.CTkFrame(self)
+        main_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["white"])
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Header frame for logo and title
+        header_frame: ctk.CTkFrame = ctk.CTkFrame(main_frame, fg_color=INOSYS_COLORS["dark_blue"])
+        header_frame.pack(fill="x", pady=(0, 20))
+
+        # Load and display logo
+        self.load_and_display_logo(header_frame)
 
         # Title
         title_label: ctk.CTkLabel = ctk.CTkLabel(
-            main_frame,
+            header_frame,
             text="Primus Dental Implant Report Generator",
-            font=ctk.CTkFont(size=24, weight="bold")
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=INOSYS_COLORS["white"]
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=10)
 
         # Create notebook for tabs
-        self.notebook = ctk.CTkTabview(main_frame)
+        self.notebook = ctk.CTkTabview(
+            main_frame,
+            fg_color=INOSYS_COLORS["light_gray"],
+            segmented_button_fg_color=INOSYS_COLORS["medium_blue"],
+            segmented_button_selected_color=INOSYS_COLORS["dark_blue"],
+            segmented_button_selected_hover_color=INOSYS_COLORS["dark_blue"]
+        )
         self.notebook.pack(fill="both", expand=True, padx=20, pady=10)
 
         # Add tabs
@@ -199,6 +246,53 @@ class PrimusImplantApp(ctk.CTk):
         self.setup_add_implant_tab()
         self.setup_review_plan_tab()
         self.setup_generate_report_tab()
+
+    def load_and_display_logo(self, parent_frame: ctk.CTkFrame) -> None:
+        """Load and display the Inosys logo in the GUI"""
+        logo_files: List[str] = [
+            "inosys_logo.png",
+            "inosys_logo.jpg",
+            "inosys_logo.jpeg",
+            "logo.png",
+            "logo.jpg",
+            "logo.jpeg"
+        ]
+
+        logo_path: Optional[str] = None
+        for logo_file in logo_files:
+            if os.path.exists(logo_file):
+                logo_path = logo_file
+                break
+
+        if logo_path:
+            try:
+                # Load logo using CTkImage
+                pil_image = PILImage.open(logo_path)
+                # Resize logo to fit nicely in header (maintain aspect ratio)
+                original_width, original_height = pil_image.size
+                max_height = 80
+                aspect_ratio = original_width / original_height
+                new_width = int(max_height * aspect_ratio)
+
+                logo_image = ctk.CTkImage(
+                    light_image=pil_image,
+                    dark_image=pil_image,
+                    size=(new_width, max_height)
+                )
+
+                logo_label: ctk.CTkLabel = ctk.CTkLabel(
+                    parent_frame,
+                    image=logo_image,
+                    text=""
+                )
+                logo_label.pack(side="left", padx=(10, 0), pady=10)
+
+                print(f"Logo loaded successfully from {logo_path}")
+
+            except Exception as e:
+                print(f"Error loading logo from {logo_path}: {str(e)}")
+        else:
+            print("Logo file not found. Please ensure the logo is saved as one of: " + ", ".join(logo_files))
 
     def setup_add_implant_tab(self) -> None:
         tab: ctk.CTkFrame = self.notebook.tab("Add Implant")
@@ -296,7 +390,10 @@ class PrimusImplantApp(ctk.CTk):
             text="Add Implant to Plan",
             command=self.add_implant_to_plan,
             height=40,
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
         )
         add_button.pack(pady=20)
 
@@ -325,7 +422,10 @@ class PrimusImplantApp(ctk.CTk):
             text="Clear All Plans",
             command=self.clear_all_plans,
             height=40,
-            font=ctk.CTkFont(size=14, weight="bold")
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
         )
         clear_button.pack(pady=10)
 
@@ -383,7 +483,10 @@ class PrimusImplantApp(ctk.CTk):
             text="Generate PDF Report",
             command=self.generate_pdf_report,
             height=50,
-            font=ctk.CTkFont(size=16, weight="bold")
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
         )
         generate_button.pack(pady=30)
 
@@ -476,7 +579,10 @@ class PrimusImplantApp(ctk.CTk):
                 plan_frame,
                 text="Remove",
                 width=80,
-                command=lambda idx=i: self.remove_implant_plan(idx)
+                command=lambda idx=i: self.remove_implant_plan(idx),
+                fg_color=INOSYS_COLORS["medium_blue"],
+                hover_color=INOSYS_COLORS["light_blue"],
+                text_color=INOSYS_COLORS["white"]
             )
             remove_button.pack(side="right", padx=10, pady=10)
 
@@ -532,7 +638,7 @@ class PrimusImplantApp(ctk.CTk):
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=20,
-            textColor=colors.darkblue,
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
             alignment=TA_CENTER,
             spaceAfter=30
         )
@@ -541,10 +647,16 @@ class PrimusImplantApp(ctk.CTk):
             'CustomHeader',
             parent=styles['Heading2'],
             fontSize=14,
-            textColor=colors.darkblue,
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
             spaceBefore=20,
             spaceAfter=10
         )
+
+        # Add logo to the report if it exists
+        logo_added: bool = self.add_logo_to_report(story)
+
+        if logo_added:
+            story.append(Spacer(1, 10))
 
         # Title
         story.append(Paragraph("PRIMUS DENTAL IMPLANT", title_style))
@@ -602,7 +714,8 @@ class PrimusImplantApp(ctk.CTk):
                 ('TOPPADDING', (0, 0), (-1, -1), 3),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                 ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
-                ('BACKGROUND', (0, 0), (0, -1), colors.lightblue)
+                ('BACKGROUND', (0, 0), (0, -1), colors.Color(0 / 255, 181 / 255, 216 / 255))
+                # Pantone 3597C - Light Blue
             ]))
 
             story.append(specs_table)
@@ -612,7 +725,8 @@ class PrimusImplantApp(ctk.CTk):
             story.append(Paragraph(
                 "DRILLING SEQUENCE:",
                 ParagraphStyle('DrillHeader', parent=styles['Heading3'],
-                               fontSize=12, textColor=colors.darkred)
+                               fontSize=12, textColor=colors.Color(14 / 255, 165 / 255, 233 / 255))
+                # Pantone 659C - Medium Blue
             ))
 
             # Create drilling sequence table
@@ -640,8 +754,11 @@ class PrimusImplantApp(ctk.CTk):
                 ('TOPPADDING', (0, 0), (-1, -1), 4),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('BACKGROUND', (0, 1), (0, -1), colors.lightgrey)
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(30 / 255, 58 / 255, 138 / 255)),
+                # Pantone 7683C - Dark Blue
+                ('BACKGROUND', (0, 1), (0, -1), colors.Color(14 / 255, 165 / 255, 233 / 255)),
+                # Pantone 659C - Medium Blue
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white)
             ]))
 
             story.append(drill_table)
@@ -703,6 +820,33 @@ class PrimusImplantApp(ctk.CTk):
 
         # Build PDF
         doc.build(story)
+
+    def add_logo_to_report(self, story: List[Any]) -> bool:
+        """Add the Inosys logo to the PDF report"""
+        logo_files: List[str] = [
+            "inosys_logo.png",
+            "inosys_logo.jpg",
+            "inosys_logo.jpeg",
+            "logo.png",
+            "logo.jpg",
+            "logo.jpeg"
+        ]
+
+        for logo_file in logo_files:
+            if os.path.exists(logo_file):
+                try:
+                    # Create logo image for PDF
+                    logo_image = Image(logo_file, width=2 * inch, height=0.8 * inch)
+                    logo_image.hAlign = 'LEFT'
+                    story.append(logo_image)
+                    print(f"Logo added to PDF report from {logo_file}")
+                    return True
+                except Exception as e:
+                    print(f"Error adding logo to PDF from {logo_file}: {str(e)}")
+                    continue
+
+        print("Logo file not found for PDF report")
+        return False
 
 
 if __name__ == "__main__":

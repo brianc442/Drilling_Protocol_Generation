@@ -5,181 +5,294 @@ from tkinter import messagebox, filedialog
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import os
+import sys
 from datetime import datetime
+from typing import Dict, List, Any, Optional, Callable
+from PIL import Image as PILImage
 
 # Set appearance mode and color theme
-ctk.set_appearance_mode("light")
+ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
+
+# Pantone Color Definitions
+# Pantone 3597C - Light Blue
+PANTONE_3597C = "#00B5D8"  # Light blue
+# Pantone 7683C - Dark Blue
+PANTONE_7683C = "#1E3A8A"  # Dark blue
+# Pantone 659C - Medium Blue
+PANTONE_659C = "#0EA5E9"  # Medium blue
+
+# Dark theme color scheme dictionary
+INOSYS_COLORS = {
+    "light_blue": PANTONE_3597C,
+    "dark_blue": PANTONE_7683C,
+    "medium_blue": PANTONE_659C,
+    "white": "#FFFFFF",
+    "light_gray": "#2B2B2B",  # Dark gray for frames
+    "dark_gray": "#1A1A1A",  # Very dark gray for background
+    "text_primary": "#FFFFFF",  # White text for primary
+    "text_secondary": "#E5E5E5",  # Light gray text for secondary
+    "background_primary": "#1A1A1A",  # Main dark background
+    "background_secondary": "#2B2B2B",  # Secondary dark background
+    "background_tertiary": "#3A3A3A"  # Tertiary dark background
+}
 
 
 class ToothDiagram(ctk.CTkFrame):
-    def __init__(self, parent, callback):
+    def __init__(self, parent: ctk.CTkFrame, callback: Callable[[List[int]], None]) -> None:
         super().__init__(parent)
-        self.callback = callback
-        self.selected_tooth = None
-        self.tooth_buttons = {}
+        self.callback: Callable[[List[int]], None] = callback
+        self.selected_teeth: List[int] = []
+        self.tooth_buttons: Dict[int, ctk.CTkButton] = {}
 
         # Tooth numbering (Universal Numeric Notation)
-        # Upper teeth: 1-16 (right to left)
-        # Lower teeth: 17-32 (left to right)
+        # Upper teeth: 1-16 (left to right)
+        # Lower teeth: 32-17 (left to right)
 
         self.create_tooth_diagram()
 
-    def create_tooth_diagram(self):
-        title = ctk.CTkLabel(self, text="Select Tooth (Universal Numeric Notation)",
-                             font=ctk.CTkFont(size=16, weight="bold"))
+    def create_tooth_diagram(self) -> None:
+        title: ctk.CTkLabel = ctk.CTkLabel(
+            self,
+            text="Select Teeth (Universal Numeric Notation) - Click multiple teeth to select",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=INOSYS_COLORS["light_blue"]
+        )
         title.pack(pady=10)
 
+        # Clear selection button
+        clear_button: ctk.CTkButton = ctk.CTkButton(
+            self,
+            text="Clear Selection",
+            command=self.clear_selection,
+            height=30,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
+        )
+        clear_button.pack(pady=(0, 10))
+
         # Upper teeth frame
-        upper_frame = ctk.CTkFrame(self)
+        upper_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["background_tertiary"])
         upper_frame.pack(pady=5)
 
-        upper_label = ctk.CTkLabel(upper_frame, text="Upper Teeth",
-                                   font=ctk.CTkFont(size=12, weight="bold"))
+        upper_label: ctk.CTkLabel = ctk.CTkLabel(
+            upper_frame,
+            text="Upper Teeth",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        )
         upper_label.pack(pady=5)
 
-        upper_teeth_frame = ctk.CTkFrame(upper_frame)
+        upper_teeth_frame: ctk.CTkFrame = ctk.CTkFrame(upper_frame, fg_color=INOSYS_COLORS["background_secondary"])
         upper_teeth_frame.pack(pady=5)
 
-        # Upper teeth (1-16, right to left)
+        # Upper teeth (1-16, left to right)
         for i in range(1, 17):
-            btn = ctk.CTkButton(upper_teeth_frame, text=str(i), width=40, height=40,
-                                command=lambda tooth=i: self.select_tooth(tooth))
-            btn.grid(row=0, column=16 - i, padx=2, pady=2)
+            btn: ctk.CTkButton = ctk.CTkButton(
+                upper_teeth_frame,
+                text=str(i),
+                width=40,
+                height=40,
+                command=lambda tooth=i: self.select_tooth(tooth),
+                fg_color=INOSYS_COLORS["dark_blue"],
+                hover_color=INOSYS_COLORS["medium_blue"],
+                text_color=INOSYS_COLORS["white"],
+                font=ctk.CTkFont(size=12, weight="bold"),
+                border_width=1,
+                border_color=INOSYS_COLORS["light_blue"]
+            )
+            btn.grid(row=0, column=i - 1, padx=2, pady=2)
             self.tooth_buttons[i] = btn
 
         # Lower teeth frame
-        lower_frame = ctk.CTkFrame(self)
+        lower_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["background_tertiary"])
         lower_frame.pack(pady=5)
 
-        lower_label = ctk.CTkLabel(lower_frame, text="Lower Teeth",
-                                   font=ctk.CTkFont(size=12, weight="bold"))
+        lower_label: ctk.CTkLabel = ctk.CTkLabel(
+            lower_frame,
+            text="Lower Teeth",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        )
         lower_label.pack(pady=5)
 
-        lower_teeth_frame = ctk.CTkFrame(lower_frame)
+        lower_teeth_frame: ctk.CTkFrame = ctk.CTkFrame(lower_frame, fg_color=INOSYS_COLORS["background_secondary"])
         lower_teeth_frame.pack(pady=5)
 
-        # Lower teeth (17-32, left to right)
-        for i in range(17, 33):
-            btn = ctk.CTkButton(lower_teeth_frame, text=str(i), width=40, height=40,
-                                command=lambda tooth=i: self.select_tooth(tooth))
-            btn.grid(row=0, column=i - 17, padx=2, pady=2)
+        # Lower teeth (32-17, left to right)
+        for i in range(32, 16, -1):
+            btn: ctk.CTkButton = ctk.CTkButton(
+                lower_teeth_frame,
+                text=str(i),
+                width=40,
+                height=40,
+                command=lambda tooth=i: self.select_tooth(tooth),
+                fg_color=INOSYS_COLORS["dark_blue"],
+                hover_color=INOSYS_COLORS["medium_blue"],
+                text_color=INOSYS_COLORS["white"],
+                font=ctk.CTkFont(size=12, weight="bold"),
+                border_width=1,
+                border_color=INOSYS_COLORS["light_blue"]
+            )
+            btn.grid(row=0, column=32 - i, padx=2, pady=2)
             self.tooth_buttons[i] = btn
 
-    def select_tooth(self, tooth_num):
+    def select_tooth(self, tooth_num: int) -> None:
+        # Toggle tooth selection
+        if tooth_num in self.selected_teeth:
+            # Deselect tooth
+            self.selected_teeth.remove(tooth_num)
+            self.tooth_buttons[tooth_num].configure(
+                fg_color=INOSYS_COLORS["dark_blue"],
+                border_color=INOSYS_COLORS["light_blue"],
+                border_width=1
+            )
+        else:
+            # Select tooth
+            self.selected_teeth.append(tooth_num)
+            self.tooth_buttons[tooth_num].configure(
+                fg_color=INOSYS_COLORS["light_blue"],
+                border_color=INOSYS_COLORS["white"],
+                border_width=2
+            )
+
+        # Sort the selected teeth list for consistent display
+        self.selected_teeth.sort()
+        self.callback(self.selected_teeth.copy())
+
+    def clear_selection(self) -> None:
         # Reset all buttons to default color
         for btn in self.tooth_buttons.values():
-            btn.configure(fg_color=("gray75", "gray25"))
+            btn.configure(
+                fg_color=INOSYS_COLORS["dark_blue"],
+                border_color=INOSYS_COLORS["light_blue"],
+                border_width=1
+            )
 
-        # Highlight selected tooth
-        self.tooth_buttons[tooth_num].configure(fg_color=("green", "green"))
-        self.selected_tooth = tooth_num
-        self.callback(tooth_num)
+        # Clear selection list
+        self.selected_teeth.clear()
+        self.callback(self.selected_teeth.copy())
 
 
 class PrimusImplantApp(ctk.CTk):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.title("Primus Dental Implant Report Generator")
-        self.geometry("1000x800")
+        self.geometry("1200x900")
+
+        # Set window icon
+        self.set_window_icon()
+
+        # Set taskbar icon (Windows-specific)
+        self.set_taskbar_icon()
+
+        # Configure window colors
+        self.configure(fg_color=INOSYS_COLORS["background_primary"])
+
+        # Initialize instance variables with type hints
+        self.implant_data: pd.DataFrame = pd.DataFrame()
+        self.implant_plans: List[Dict[str, Any]] = []
+
+        # GUI components - will be initialized in create_widgets
+        self.notebook: ctk.CTkTabview
+        self.tooth_diagram: ToothDiagram
+        self.selected_teeth_label: ctk.CTkLabel
+        self.implant_line_var: ctk.StringVar
+        self.implant_line_combo: ctk.CTkComboBox
+        self.implant_diameter_var: ctk.StringVar
+        self.implant_diameter_combo: ctk.CTkComboBox
+        self.implant_length_var: ctk.StringVar
+        self.implant_length_combo: ctk.CTkComboBox
+        self.offset_var: ctk.StringVar
+        self.offset_combo: ctk.CTkComboBox
+        self.plan_scrollable_frame: ctk.CTkScrollableFrame
+        self.doctor_name_entry: ctk.CTkEntry
+        self.patient_name_entry: ctk.CTkEntry
+        self.case_number_entry: ctk.CTkEntry
 
         # Load CSV data
         self.load_implant_data()
 
-        # Store implant plans
-        self.implant_plans = []
-
         self.create_widgets()
 
-    def load_implant_data(self):
+    def load_implant_data(self) -> None:
         """Load implant data from CSV file"""
-        try:
-            # For this example, we'll create the data directly from the provided CSV content
-            csv_content = """Implant Line,Implant Part No,Implant Diameter,Implant Length,Guide Sleeve,Drill Length,Offset,Starter Drill,Initial Drill 1,Initial Drill 2,Drill 1,Drill 2,Drill 3,Drill 4
-Primus,PBF3508S,3.5,8.5,CGSC-5304,18.5,10,8.5,8.5,8.5,8.5,8.5,8.5,8.5
-Primus,PBF3508S,3.5,8.5,CGSC-5304,20,11.5,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF3508S,3.5,8.5,CGSC-5304,21.5,13,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF3510S,3.5,10,CGSC-5304,20,10,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF3510S,3.5,10,CGSC-5304,21.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF3510S,3.5,10,CGSC-5304,23,13,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF3511S,3.5,11.5,CGSC-5304,21.5,10,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF3511S,3.5,11.5,CGSC-5304,23,11.5,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF3511S,3.5,11.5,CGSC-5304,24.5,13,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF3513S,3.5,13,CGSC-5304,23,10,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF3513S,3.5,13,CGSC-5304,24.5,11.5,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF3513S,3.5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0
-Primus,PBF4007S,4,7.5,CGSC-5304,17.5,10,7.5,7.5,7.5,7.5,7.5,7.5,7.5
-Primus,PBF4007S,4,7.5,CGSC-5304,19,11.5,9.0,9.0,9.0,9.0,9.0,9.0,9.0
-Primus,PBF4007S,4,7.5,CGSC-5304,20.5,13,10.5,10.5,10.5,10.5,10.5,10.5,10.5
-Primus,PBF4008S,4,8.5,CGSC-5304,18.5,10,8.5,8.5,8.5,8.5,8.5,8.5,8.5
-Primus,PBF4008S,4,8.5,CGSC-5304,20,11.5,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF4008S,4,8.5,CGSC-5304,21.5,13,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF4010S,4,10,CGSC-5304,20,10,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF4010S,4,10,CGSC-5304,21.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF4010S,4,10,CGSC-5304,23,13,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF4011S,4,11.5,CGSC-5304,21.5,10,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF4011S,4,11.5,CGSC-5304,23,11.5,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF4011S,4,11.5,CGSC-5304,24.5,13,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF4013S,4,13,CGSC-5304,23,10,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF4013S,4,13,CGSC-5304,24.5,11.5,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF4013S,4,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0
-Primus,PBF4507S,4.5,7.5,CGSC-5304,17.5,10,7.5,7.5,7.5,7.5,7.5,7.5,7.5
-Primus,PBF4507S,4.5,7.5,CGSC-5304,19,11.5,9.0,9.0,9.0,9.0,9.0,9.0,9.0
-Primus,PBF4507S,4.5,7.5,CGSC-5304,20.5,13,10.5,10.5,10.5,10.5,10.5,10.5,10.5
-Primus,PBF4508S,4.5,8.5,CGSC-5304,18.5,10,8.5,8.5,8.5,8.5,8.5,8.5,8.5
-Primus,PBF4508S,4.5,8.5,CGSC-5304,20,11.5,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF4508S,4.5,8.5,CGSC-5304,21.5,13,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF4510S,4.5,10,CGSC-5304,20,10,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF4510S,4.5,10,CGSC-5304,21.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF4510S,4.5,10,CGSC-5304,23,13,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF4511S,4.5,11.5,CGSC-5304,21.5,10,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF4511S,4.5,11.5,CGSC-5304,23,11.5,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF4511S,4.5,11.5,CGSC-5304,24.5,13,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF4513S,4.5,13,CGSC-5304,23,10,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF4513S,4.5,13,CGSC-5304,24.5,11.5,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF4513S,4.5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0
-Primus,PBF5007S,5,7.5,CGSC-5304,17.5,10,7.5,7.5,7.5,7.5,7.5,7.5,7.5
-Primus,PBF5007S,5,7.5,CGSC-5304,19,11.5,9.0,9.0,9.0,9.0,9.0,9.0,9.0
-Primus,PBF5007S,5,7.5,CGSC-5304,20.5,13,10.5,10.5,10.5,10.5,10.5,10.5,10.5
-Primus,PBF5008S,5,8.5,CGSC-5304,18.5,10,8.5,8.5,8.5,8.5,8.5,8.5,8.5
-Primus,PBF5008S,5,8.5,CGSC-5304,20,11.5,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF5008S,5,8.5,CGSC-5304,21.5,13,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF5010S,5,10,CGSC-5304,20,10,10.0,10.0,10.0,10.0,10.0,10.0,10.0
-Primus,PBF5010S,5,10,CGSC-5304,21.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF5010S,5,10,CGSC-5304,23,13,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF5011S,5,11.5,CGSC-5304,21.5,10,11.5,11.5,11.5,11.5,11.5,11.5,11.5
-Primus,PBF5011S,5,11.5,CGSC-5304,23,11.5,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF5011S,5,11.5,CGSC-5304,24.5,13,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF5013S,5,13,CGSC-5304,23,10,13.0,13.0,13.0,13.0,13.0,13.0,13.0
-Primus,PBF5013S,5,13,CGSC-5304,24.5,11.5,14.5,14.5,14.5,14.5,14.5,14.5,14.5
-Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
+        csv_filename: str = "Primus Implant List - Primus Implant List.csv"
 
-            from io import StringIO
-            self.implant_data = pd.read_csv(StringIO(csv_content))
-            print("Implant data loaded successfully!")
+        try:
+            if not os.path.exists(csv_filename):
+                raise FileNotFoundError(f"CSV file '{csv_filename}' not found in current directory")
+
+            self.implant_data = pd.read_csv(csv_filename)
+            print(f"Implant data loaded successfully from {csv_filename}!")
             print(f"Total records: {len(self.implant_data)}")
 
+            # Validate required columns
+            required_columns: List[str] = [
+                'Implant Line', 'Implant Part No', 'Implant Diameter', 'Implant Length',
+                'Guide Sleeve', 'Drill Length', 'Offset', 'Starter Drill',
+                'Initial Drill 1', 'Initial Drill 2', 'Drill 1', 'Drill 2', 'Drill 3', 'Drill 4'
+            ]
+
+            missing_columns: List[str] = [col for col in required_columns if col not in self.implant_data.columns]
+            if missing_columns:
+                raise ValueError(f"Missing required columns: {missing_columns}")
+
+        except FileNotFoundError as e:
+            messagebox.showerror("File Not Found", str(e))
+            self.implant_data = pd.DataFrame()
+        except pd.errors.EmptyDataError:
+            messagebox.showerror("Error", f"The file '{csv_filename}' is empty")
+            self.implant_data = pd.DataFrame()
+        except pd.errors.ParserError as e:
+            messagebox.showerror("Error", f"Failed to parse CSV file: {str(e)}")
+            self.implant_data = pd.DataFrame()
+        except ValueError as e:
+            messagebox.showerror("Data Validation Error", str(e))
+            self.implant_data = pd.DataFrame()
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to load implant data: {str(e)}")
+            messagebox.showerror("Error", f"Unexpected error loading implant data: {str(e)}")
             self.implant_data = pd.DataFrame()
 
-    def create_widgets(self):
+    def create_widgets(self) -> None:
         # Main container
-        main_frame = ctk.CTkFrame(self)
+        main_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["background_secondary"])
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        # Title
-        title_label = ctk.CTkLabel(main_frame, text="Primus Dental Implant Report Generator",
-                                   font=ctk.CTkFont(size=24, weight="bold"))
-        title_label.pack(pady=20)
+        # Header frame for logo and title
+        header_frame: ctk.CTkFrame = ctk.CTkFrame(main_frame, fg_color=INOSYS_COLORS["medium_blue"])
+        header_frame.pack(fill="x", pady=(0, 20))
+
+        # Load and display logo
+        self.load_and_display_logo(header_frame)
+
+        # Title - vertically centered
+        title_label: ctk.CTkLabel = ctk.CTkLabel(
+            header_frame,
+            text="Primus Dental Implant Report Generator",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=INOSYS_COLORS["white"]
+        )
+        title_label.pack(expand=True, pady=10)
 
         # Create notebook for tabs
-        self.notebook = ctk.CTkTabview(main_frame)
+        self.notebook = ctk.CTkTabview(
+            main_frame,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            segmented_button_fg_color=INOSYS_COLORS["background_tertiary"],
+            segmented_button_selected_color=INOSYS_COLORS["light_blue"],
+            segmented_button_selected_hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["text_primary"],
+            segmented_button_unselected_color=INOSYS_COLORS["background_tertiary"],
+            segmented_button_unselected_hover_color=INOSYS_COLORS["background_secondary"]
+        )
         self.notebook.pack(fill="both", expand=True, padx=20, pady=10)
 
         # Add tabs
@@ -192,149 +305,478 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
         self.setup_review_plan_tab()
         self.setup_generate_report_tab()
 
-    def setup_add_implant_tab(self):
-        tab = self.notebook.tab("Add Implant")
+    def load_and_display_logo(self, parent_frame: ctk.CTkFrame) -> None:
+        """Load and display the Inosys logo in the GUI"""
+        logo_files: List[str] = [
+            "inosys_logo.png",
+            "inosys_logo.jpg",
+            "inosys_logo.jpeg",
+            "logo.png",
+            "logo.jpg",
+            "logo.jpeg"
+        ]
+
+        logo_path: Optional[str] = None
+        for logo_file in logo_files:
+            if os.path.exists(logo_file):
+                logo_path = logo_file
+                break
+
+        if logo_path:
+            try:
+                # Load logo using CTkImage
+                pil_image = PILImage.open(logo_path)
+                # Resize logo to fit nicely in header (maintain aspect ratio)
+                original_width, original_height = pil_image.size
+                max_height = 80
+                aspect_ratio = original_width / original_height
+                new_width = int(max_height * aspect_ratio)
+
+                logo_image = ctk.CTkImage(
+                    light_image=pil_image,
+                    dark_image=pil_image,
+                    size=(new_width, max_height)
+                )
+
+                logo_label: ctk.CTkLabel = ctk.CTkLabel(
+                    parent_frame,
+                    image=logo_image,
+                    text=""
+                )
+                logo_label.pack(side="left", padx=(10, 0), pady=10)
+
+                print(f"Logo loaded successfully from {logo_path}")
+
+            except Exception as e:
+                print(f"Error loading logo from {logo_path}: {str(e)}")
+        else:
+            print("Logo file not found. Please ensure the logo is saved as one of: " + ", ".join(logo_files))
+
+    def set_window_icon(self) -> None:
+        """Set the window icon"""
+        icon_files: List[str] = [
+            "icon.ico",
+            "icon.png",
+            "window_icon.ico",
+            "window_icon.png",
+            "inosys_icon.ico",
+            "inosys_icon.png",
+            "logo.ico",
+            "logo.png"
+        ]
+
+        for icon_file in icon_files:
+            if os.path.exists(icon_file):
+                try:
+                    print(f"Found icon file: {icon_file}")
+
+                    # Try ICO files first (most reliable for Windows)
+                    if icon_file.lower().endswith('.ico'):
+                        try:
+                            self.iconbitmap(icon_file)
+                            # Also try wm_iconbitmap for better compatibility
+                            self.wm_iconbitmap(icon_file)
+                            print(f"Window icon set successfully from {icon_file} (ICO)")
+                            return
+                        except Exception as e:
+                            print(f"ICO method failed: {str(e)}")
+                            continue
+
+                    # For PNG files, try multiple methods
+                    elif icon_file.lower().endswith('.png'):
+                        success = False
+
+                        # Method 1: Convert PNG to ICO and use iconbitmap
+                        try:
+                            # Convert PNG to ICO in memory
+                            pil_image = PILImage.open(icon_file)
+                            # Create multiple sizes for ICO
+                            icon_sizes = [(16, 16), (32, 32), (48, 48)]
+                            ico_path = icon_file.replace('.png', '_temp.ico')
+
+                            # Save as temporary ICO file
+                            pil_image.save(ico_path, format='ICO', sizes=icon_sizes)
+
+                            # Use the ICO file
+                            self.iconbitmap(ico_path)
+                            self.wm_iconbitmap(ico_path)
+
+                            # Clean up temporary file
+                            try:
+                                os.remove(ico_path)
+                            except:
+                                pass
+
+                            print(f"Window icon set successfully from {icon_file} (PNG->ICO conversion)")
+                            return
+
+                        except Exception as e:
+                            print(f"PNG->ICO conversion failed: {str(e)}")
+
+                        # Method 2: Use PhotoImage with iconphoto
+                        try:
+                            from PIL import ImageTk
+
+                            # Load and resize icon
+                            pil_image = PILImage.open(icon_file)
+                            # Try multiple sizes
+                            for size in [(64, 64), (32, 32), (16, 16)]:
+                                resized_image = pil_image.resize(size, PILImage.Resampling.LANCZOS)
+                                photo = ImageTk.PhotoImage(resized_image)
+
+                                # Try both iconphoto methods
+                                self.iconphoto(True, photo)
+                                self.wm_iconphoto(True, photo)
+
+                                # Keep reference
+                                if not hasattr(self, '_icon_photos'):
+                                    self._icon_photos = []
+                                self._icon_photos.append(photo)
+
+                            print(f"Window icon set successfully from {icon_file} (PhotoImage)")
+                            return
+
+                        except Exception as e:
+                            print(f"PhotoImage method failed: {str(e)}")
+
+                        # Method 3: Simple tkinter PhotoImage
+                        try:
+                            import tkinter as tk
+                            photo = tk.PhotoImage(file=icon_file)
+                            self.iconphoto(True, photo)
+                            self.wm_iconphoto(True, photo)
+                            self._icon_photo = photo
+                            print(f"Window icon set successfully from {icon_file} (simple PhotoImage)")
+                            return
+                        except Exception as e:
+                            print(f"Simple PhotoImage method failed: {str(e)}")
+
+                except Exception as e:
+                    print(f"Error setting window icon from {icon_file}: {str(e)}")
+                    continue
+
+        print("Window icon could not be set. For best results, convert your icon to ICO format.")
+        print("You can use online converters or tools like GIMP to convert PNG to ICO.")
+
+    def set_taskbar_icon(self) -> None:
+        """Set the taskbar icon (Windows-specific solution)"""
+        try:
+            # Try to set Windows taskbar icon using ctypes
+            if sys.platform.startswith('win'):
+                try:
+                    import ctypes
+                    from ctypes import wintypes
+
+                    # Get the window handle
+                    hwnd = self.winfo_id()
+
+                    # Find icon file
+                    icon_files = ["icon.ico", "icon.png"]
+                    icon_path = None
+
+                    for icon_file in icon_files:
+                        if os.path.exists(icon_file):
+                            icon_path = os.path.abspath(icon_file)
+                            break
+
+                    if icon_path and icon_path.endswith('.ico'):
+                        # Load the icon
+                        IMAGE_ICON = 1
+                        LR_LOADFROMFILE = 0x00000010
+                        LR_DEFAULTSIZE = 0x00000040
+
+                        hicon = ctypes.windll.user32.LoadImageW(
+                            None, icon_path, IMAGE_ICON, 0, 0,
+                            LR_LOADFROMFILE | LR_DEFAULTSIZE
+                        )
+
+                        if hicon:
+                            # Set both small and large icons
+                            WM_SETICON = 0x0080
+                            ICON_SMALL = 0
+                            ICON_BIG = 1
+
+                            ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon)
+                            ctypes.windll.user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon)
+
+                            print("Taskbar icon set successfully using Windows API")
+                            return
+
+                except Exception as e:
+                    print(f"Windows API method failed: {str(e)}")
+
+                # Alternative method: Set application ID
+                try:
+                    import ctypes
+                    app_id = "Inosys.PrimusDentalImplant.ReportGenerator.1.0"
+                    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+                    print("Application ID set for taskbar grouping")
+                except Exception as e:
+                    print(f"Could not set application ID: {str(e)}")
+
+        except Exception as e:
+            print(f"Taskbar icon setup failed: {str(e)}")
+
+        print("Note: Taskbar icons work best when the application is run as an executable (.exe)")
+        print("Consider using PyInstaller with --icon=icon.ico for production deployment")
+
+    def setup_add_implant_tab(self) -> None:
+        tab: ctk.CTkFrame = self.notebook.tab("Add Implant")
 
         # Create scrollable frame
-        scrollable_frame = ctk.CTkScrollableFrame(tab)
+        scrollable_frame: ctk.CTkScrollableFrame = ctk.CTkScrollableFrame(
+            tab,
+            fg_color=INOSYS_COLORS["background_secondary"]
+        )
         scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Tooth selection
-        tooth_frame = ctk.CTkFrame(scrollable_frame)
+        tooth_frame: ctk.CTkFrame = ctk.CTkFrame(scrollable_frame, fg_color=INOSYS_COLORS["background_tertiary"])
         tooth_frame.pack(fill="x", padx=10, pady=10)
 
-        self.tooth_diagram = ToothDiagram(tooth_frame, self.on_tooth_selected)
+        self.tooth_diagram = ToothDiagram(tooth_frame, self.on_teeth_selected)
         self.tooth_diagram.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Selected tooth display
-        self.selected_tooth_label = ctk.CTkLabel(scrollable_frame, text="Selected Tooth: None",
-                                                 font=ctk.CTkFont(size=14, weight="bold"))
-        self.selected_tooth_label.pack(pady=10)
+        # Selected teeth display
+        self.selected_teeth_label = ctk.CTkLabel(
+            scrollable_frame,
+            text="Selected Teeth: None",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=INOSYS_COLORS["light_blue"]
+        )
+        self.selected_teeth_label.pack(pady=10)
 
         # Input fields frame
-        input_frame = ctk.CTkFrame(scrollable_frame)
+        input_frame: ctk.CTkFrame = ctk.CTkFrame(scrollable_frame, fg_color=INOSYS_COLORS["background_tertiary"])
         input_frame.pack(fill="x", padx=10, pady=10)
 
         # Implant Line
-        ctk.CTkLabel(input_frame, text="Implant Line:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=0, column=0,
-                                                                                                       padx=10, pady=5,
-                                                                                                       sticky="w")
+        ctk.CTkLabel(
+            input_frame,
+            text="Implant Line:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
         self.implant_line_var = ctk.StringVar(value="Primus")
-        self.implant_line_combo = ctk.CTkComboBox(input_frame, values=["Primus"],
-                                                  variable=self.implant_line_var, state="readonly")
+        self.implant_line_combo = ctk.CTkComboBox(
+            input_frame,
+            values=["Primus"],
+            variable=self.implant_line_var,
+            state="readonly",
+            fg_color=INOSYS_COLORS["background_secondary"],
+            button_color=INOSYS_COLORS["medium_blue"],
+            button_hover_color=INOSYS_COLORS["light_blue"],
+            text_color=INOSYS_COLORS["text_primary"]
+        )
         self.implant_line_combo.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
 
         # Implant Diameter
-        ctk.CTkLabel(input_frame, text="Implant Diameter:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=1,
-                                                                                                           column=0,
-                                                                                                           padx=10,
-                                                                                                           pady=5,
-                                                                                                           sticky="w")
+        ctk.CTkLabel(
+            input_frame,
+            text="Implant Diameter:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
         self.implant_diameter_var = ctk.StringVar()
-        self.implant_diameter_combo = ctk.CTkComboBox(input_frame, values=["3.5", "4.0", "4.5", "5.0"],
-                                                      variable=self.implant_diameter_var)
+        self.implant_diameter_combo = ctk.CTkComboBox(
+            input_frame,
+            values=["3.5", "4.0", "4.5", "5.0"],
+            variable=self.implant_diameter_var,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            button_color=INOSYS_COLORS["medium_blue"],
+            button_hover_color=INOSYS_COLORS["light_blue"],
+            text_color=INOSYS_COLORS["text_primary"]
+        )
         self.implant_diameter_combo.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
 
         # Implant Length
-        ctk.CTkLabel(input_frame, text="Implant Length:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=2,
-                                                                                                         column=0,
-                                                                                                         padx=10,
-                                                                                                         pady=5,
-                                                                                                         sticky="w")
+        ctk.CTkLabel(
+            input_frame,
+            text="Implant Length:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
         self.implant_length_var = ctk.StringVar()
-        self.implant_length_combo = ctk.CTkComboBox(input_frame, values=["7.5", "8.5", "10.0", "11.5", "13.0"],
-                                                    variable=self.implant_length_var)
+        self.implant_length_combo = ctk.CTkComboBox(
+            input_frame,
+            values=["7.5", "8.5", "10.0", "11.5", "13.0"],
+            variable=self.implant_length_var,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            button_color=INOSYS_COLORS["medium_blue"],
+            button_hover_color=INOSYS_COLORS["light_blue"],
+            text_color=INOSYS_COLORS["text_primary"]
+        )
         self.implant_length_combo.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
 
         # Offset
-        ctk.CTkLabel(input_frame, text="Offset:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=3, column=0,
-                                                                                                 padx=10, pady=5,
-                                                                                                 sticky="w")
+        ctk.CTkLabel(
+            input_frame,
+            text="Offset:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=3, column=0, padx=10, pady=5, sticky="w")
+
         self.offset_var = ctk.StringVar()
-        self.offset_combo = ctk.CTkComboBox(input_frame, values=["10", "11.5", "13"],
-                                            variable=self.offset_var)
+        self.offset_combo = ctk.CTkComboBox(
+            input_frame,
+            values=["10", "11.5", "13"],
+            variable=self.offset_var,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            button_color=INOSYS_COLORS["medium_blue"],
+            button_hover_color=INOSYS_COLORS["light_blue"],
+            text_color=INOSYS_COLORS["text_primary"]
+        )
         self.offset_combo.grid(row=3, column=1, padx=10, pady=5, sticky="ew")
 
         # Configure grid weights
         input_frame.columnconfigure(1, weight=1)
 
         # Add implant button
-        add_button = ctk.CTkButton(scrollable_frame, text="Add Implant to Plan",
-                                   command=self.add_implant_to_plan, height=40,
-                                   font=ctk.CTkFont(size=14, weight="bold"))
+        add_button: ctk.CTkButton = ctk.CTkButton(
+            scrollable_frame,
+            text="Add Implants to Plan",
+            command=self.add_implants_to_plan,
+            height=40,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=INOSYS_COLORS["light_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
+        )
         add_button.pack(pady=20)
 
-    def setup_review_plan_tab(self):
-        tab = self.notebook.tab("Review Plan")
+    def setup_review_plan_tab(self) -> None:
+        tab: ctk.CTkFrame = self.notebook.tab("Review Plan")
 
         # Frame for the plan list
-        plan_frame = ctk.CTkFrame(tab)
+        plan_frame: ctk.CTkFrame = ctk.CTkFrame(tab, fg_color=INOSYS_COLORS["background_secondary"])
         plan_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Title
-        title_label = ctk.CTkLabel(plan_frame, text="Current Implant Plan",
-                                   font=ctk.CTkFont(size=18, weight="bold"))
+        title_label: ctk.CTkLabel = ctk.CTkLabel(
+            plan_frame,
+            text="Current Implant Plan",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=INOSYS_COLORS["light_blue"]
+        )
         title_label.pack(pady=10)
 
         # Scrollable frame for plan items
-        self.plan_scrollable_frame = ctk.CTkScrollableFrame(plan_frame)
+        self.plan_scrollable_frame = ctk.CTkScrollableFrame(
+            plan_frame,
+            fg_color=INOSYS_COLORS["background_tertiary"]
+        )
         self.plan_scrollable_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Clear plan button
-        clear_button = ctk.CTkButton(plan_frame, text="Clear All Plans",
-                                     command=self.clear_all_plans, height=40,
-                                     font=ctk.CTkFont(size=14, weight="bold"))
+        clear_button: ctk.CTkButton = ctk.CTkButton(
+            plan_frame,
+            text="Clear All Plans",
+            command=self.clear_all_plans,
+            height=40,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
+        )
         clear_button.pack(pady=10)
 
-    def setup_generate_report_tab(self):
-        tab = self.notebook.tab("Generate Report")
+    def setup_generate_report_tab(self) -> None:
+        tab: ctk.CTkFrame = self.notebook.tab("Generate Report")
 
         # Frame for report generation
-        report_frame = ctk.CTkFrame(tab)
+        report_frame: ctk.CTkFrame = ctk.CTkFrame(tab, fg_color=INOSYS_COLORS["background_secondary"])
         report_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Title
-        title_label = ctk.CTkLabel(report_frame, text="Generate PDF Report",
-                                   font=ctk.CTkFont(size=18, weight="bold"))
+        title_label: ctk.CTkLabel = ctk.CTkLabel(
+            report_frame,
+            text="Generate PDF Report",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=INOSYS_COLORS["light_blue"]
+        )
         title_label.pack(pady=20)
 
         # Doctor information
-        info_frame = ctk.CTkFrame(report_frame)
+        info_frame: ctk.CTkFrame = ctk.CTkFrame(report_frame, fg_color=INOSYS_COLORS["background_tertiary"])
         info_frame.pack(fill="x", padx=20, pady=10)
 
-        ctk.CTkLabel(info_frame, text="Doctor Name:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=0, column=0,
-                                                                                                     padx=10, pady=5,
-                                                                                                     sticky="w")
-        self.doctor_name_entry = ctk.CTkEntry(info_frame, width=300)
+        ctk.CTkLabel(
+            info_frame,
+            text="Doctor Name:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+        self.doctor_name_entry = ctk.CTkEntry(
+            info_frame,
+            width=300,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            text_color=INOSYS_COLORS["text_primary"],
+            border_color=INOSYS_COLORS["medium_blue"]
+        )
         self.doctor_name_entry.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
 
-        ctk.CTkLabel(info_frame, text="Patient Name:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=1, column=0,
-                                                                                                      padx=10, pady=5,
-                                                                                                      sticky="w")
-        self.patient_name_entry = ctk.CTkEntry(info_frame, width=300)
+        ctk.CTkLabel(
+            info_frame,
+            text="Patient Name:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
+        self.patient_name_entry = ctk.CTkEntry(
+            info_frame,
+            width=300,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            text_color=INOSYS_COLORS["text_primary"],
+            border_color=INOSYS_COLORS["medium_blue"]
+        )
         self.patient_name_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
 
-        ctk.CTkLabel(info_frame, text="Case Number:", font=ctk.CTkFont(size=12, weight="bold")).grid(row=2, column=0,
-                                                                                                     padx=10, pady=5,
-                                                                                                     sticky="w")
-        self.case_number_entry = ctk.CTkEntry(info_frame, width=300)
+        ctk.CTkLabel(
+            info_frame,
+            text="Case Number:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=2, column=0, padx=10, pady=5, sticky="w")
+
+        self.case_number_entry = ctk.CTkEntry(
+            info_frame,
+            width=300,
+            fg_color=INOSYS_COLORS["background_secondary"],
+            text_color=INOSYS_COLORS["text_primary"],
+            border_color=INOSYS_COLORS["medium_blue"]
+        )
         self.case_number_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
 
         info_frame.columnconfigure(1, weight=1)
 
         # Generate button
-        generate_button = ctk.CTkButton(report_frame, text="Generate PDF Report",
-                                        command=self.generate_pdf_report, height=50,
-                                        font=ctk.CTkFont(size=16, weight="bold"))
+        generate_button: ctk.CTkButton = ctk.CTkButton(
+            report_frame,
+            text="Generate PDF Report",
+            command=self.generate_pdf_report,
+            height=50,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color=INOSYS_COLORS["light_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"],
+            text_color=INOSYS_COLORS["white"]
+        )
         generate_button.pack(pady=30)
 
-    def on_tooth_selected(self, tooth_num):
-        self.selected_tooth_label.configure(text=f"Selected Tooth: {tooth_num}")
+    def on_teeth_selected(self, selected_teeth: List[int]) -> None:
+        if selected_teeth:
+            teeth_text = ", ".join(map(str, selected_teeth))
+            self.selected_teeth_label.configure(text=f"Selected Teeth: {teeth_text}")
+        else:
+            self.selected_teeth_label.configure(text="Selected Teeth: None")
 
-    def add_implant_to_plan(self):
+    def add_implants_to_plan(self) -> None:
         # Validate inputs
-        if not self.tooth_diagram.selected_tooth:
-            messagebox.showerror("Error", "Please select a tooth first!")
+        if not self.tooth_diagram.selected_teeth:
+            messagebox.showerror("Error", "Please select at least one tooth first!")
             return
 
         if not all([self.implant_diameter_var.get(), self.implant_length_var.get(), self.offset_var.get()]):
@@ -342,11 +784,11 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
             return
 
         # Check if implant configuration exists in database
-        diameter = float(self.implant_diameter_var.get())
-        length = float(self.implant_length_var.get())
-        offset = float(self.offset_var.get())
+        diameter: float = float(self.implant_diameter_var.get())
+        length: float = float(self.implant_length_var.get())
+        offset: float = float(self.offset_var.get())
 
-        matching_implant = self.implant_data[
+        matching_implant: pd.DataFrame = self.implant_data[
             (self.implant_data['Implant Diameter'] == diameter) &
             (self.implant_data['Implant Length'] == length) &
             (self.implant_data['Offset'] == offset)
@@ -356,78 +798,115 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
             messagebox.showerror("Error", "No matching implant found in database for the selected specifications!")
             return
 
-        # Create implant plan
-        implant_plan = {
-            'tooth_number': self.tooth_diagram.selected_tooth,
-            'implant_line': self.implant_line_var.get(),
-            'diameter': diameter,
-            'length': length,
-            'offset': offset,
-            'implant_data': matching_implant.iloc[0].to_dict()
-        }
+        # Track which teeth were added and which were replaced
+        added_teeth: List[int] = []
+        replaced_teeth: List[int] = []
 
-        # Check if tooth already has an implant planned
-        existing_plan = next(
-            (plan for plan in self.implant_plans if plan['tooth_number'] == implant_plan['tooth_number']), None)
-        if existing_plan:
-            if messagebox.askyesno("Tooth Already Planned",
-                                   f"Tooth {implant_plan['tooth_number']} already has an implant planned. Replace it?"):
+        # Create implant plans for each selected tooth
+        for tooth_number in self.tooth_diagram.selected_teeth:
+            implant_plan: Dict[str, Any] = {
+                'tooth_number': tooth_number,
+                'implant_line': self.implant_line_var.get(),
+                'diameter': diameter,
+                'length': length,
+                'offset': offset,
+                'implant_data': matching_implant.iloc[0].to_dict()
+            }
+
+            # Check if tooth already has an implant planned
+            existing_plan: Optional[Dict[str, Any]] = next(
+                (plan for plan in self.implant_plans if plan['tooth_number'] == tooth_number),
+                None
+            )
+
+            if existing_plan:
                 self.implant_plans.remove(existing_plan)
+                replaced_teeth.append(tooth_number)
             else:
-                return
+                added_teeth.append(tooth_number)
 
-        self.implant_plans.append(implant_plan)
+            self.implant_plans.append(implant_plan)
+
+        # Update display and show success message
         self.update_plan_display()
-        messagebox.showinfo("Success", f"Implant added to plan for tooth {implant_plan['tooth_number']}!")
+
+        # Create success message
+        message_parts: List[str] = []
+        if added_teeth:
+            message_parts.append(f"Added implants for teeth: {', '.join(map(str, added_teeth))}")
+        if replaced_teeth:
+            message_parts.append(f"Replaced existing implants for teeth: {', '.join(map(str, replaced_teeth))}")
+
+        messagebox.showinfo("Success", "\n".join(message_parts))
 
         # Clear selections
         self.implant_diameter_var.set("")
         self.implant_length_var.set("")
         self.offset_var.set("")
+        self.tooth_diagram.clear_selection()
 
-    def update_plan_display(self):
+    def update_plan_display(self) -> None:
         # Clear existing plan display
         for widget in self.plan_scrollable_frame.winfo_children():
             widget.destroy()
 
         # Add each implant plan to display
         for i, plan in enumerate(self.implant_plans):
-            plan_frame = ctk.CTkFrame(self.plan_scrollable_frame)
+            plan_frame: ctk.CTkFrame = ctk.CTkFrame(
+                self.plan_scrollable_frame,
+                fg_color=INOSYS_COLORS["background_secondary"],
+                border_width=1,
+                border_color=INOSYS_COLORS["medium_blue"]
+            )
             plan_frame.pack(fill="x", padx=10, pady=5)
 
             # Plan details
-            details_text = f"Tooth {plan['tooth_number']}: {plan['implant_line']} - {plan['diameter']}mm × {plan['length']}mm (Offset: {plan['offset']}mm)"
-            details_label = ctk.CTkLabel(plan_frame, text=details_text,
-                                         font=ctk.CTkFont(size=12, weight="bold"))
+            details_text: str = (
+                f"Tooth {plan['tooth_number']}: {plan['implant_line']} - "
+                f"{plan['diameter']}mm × {plan['length']}mm (Offset: {plan['offset']}mm)"
+            )
+            details_label: ctk.CTkLabel = ctk.CTkLabel(
+                plan_frame,
+                text=details_text,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                text_color=INOSYS_COLORS["text_primary"]
+            )
             details_label.pack(side="left", padx=10, pady=10)
 
             # Remove button
-            remove_button = ctk.CTkButton(plan_frame, text="Remove", width=80,
-                                          command=lambda idx=i: self.remove_implant_plan(idx))
+            remove_button: ctk.CTkButton = ctk.CTkButton(
+                plan_frame,
+                text="Remove",
+                width=80,
+                command=lambda idx=i: self.remove_implant_plan(idx),
+                fg_color=INOSYS_COLORS["dark_blue"],
+                hover_color=INOSYS_COLORS["light_blue"],
+                text_color=INOSYS_COLORS["white"]
+            )
             remove_button.pack(side="right", padx=10, pady=10)
 
-    def remove_implant_plan(self, index):
+    def remove_implant_plan(self, index: int) -> None:
         if 0 <= index < len(self.implant_plans):
             self.implant_plans.pop(index)
             self.update_plan_display()
 
-    def clear_all_plans(self):
+    def clear_all_plans(self) -> None:
         if messagebox.askyesno("Clear All Plans", "Are you sure you want to clear all implant plans?"):
             self.implant_plans.clear()
             self.update_plan_display()
 
-    def generate_pdf_report(self):
+    def generate_pdf_report(self) -> None:
         if not self.implant_plans:
             messagebox.showerror("Error", "No implant plans to generate report!")
             return
 
         # Get report information
-        doctor_name = self.doctor_name_entry.get() or "Dr. [Name]"
-        patient_name = self.patient_name_entry.get() or "[Patient Name]"
-        case_number = self.case_number_entry.get() or "[Case Number]"
+        doctor_name: str = self.doctor_name_entry.get() or "Dr. [Name]"
+        patient_name: str = self.patient_name_entry.get() or "[Patient Name]"
+        case_number: str = self.case_number_entry.get() or "[Case Number]"
 
         # Ask for save location
-        filename = filedialog.asksaveasfilename(
+        filename: str = filedialog.asksaveasfilename(
             defaultextension=".pdf",
             filetypes=[("PDF files", "*.pdf")],
             title="Save Report As",
@@ -443,29 +922,40 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate report: {str(e)}")
 
-    def create_pdf_report(self, filename, doctor_name, patient_name, case_number):
-        doc = SimpleDocTemplate(filename, pagesize=letter, topMargin=0.5 * inch, bottomMargin=0.5 * inch)
+    def create_pdf_report(self, filename: str, doctor_name: str, patient_name: str, case_number: str) -> None:
+        doc: SimpleDocTemplate = SimpleDocTemplate(
+            filename,
+            pagesize=letter,
+            topMargin=0.5 * inch,
+            bottomMargin=0.5 * inch
+        )
         styles = getSampleStyleSheet()
-        story = []
+        story: List[Any] = []
 
         # Custom styles
-        title_style = ParagraphStyle(
+        title_style: ParagraphStyle = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
             fontSize=20,
-            textColor=colors.darkblue,
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
             alignment=TA_CENTER,
             spaceAfter=30
         )
 
-        header_style = ParagraphStyle(
+        header_style: ParagraphStyle = ParagraphStyle(
             'CustomHeader',
             parent=styles['Heading2'],
             fontSize=14,
-            textColor=colors.darkblue,
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
             spaceBefore=20,
             spaceAfter=10
         )
+
+        # Add logo to the report if it exists
+        logo_added: bool = self.add_logo_to_report(story)
+
+        if logo_added:
+            story.append(Spacer(1, 10))
 
         # Title
         story.append(Paragraph("PRIMUS DENTAL IMPLANT", title_style))
@@ -473,7 +963,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
         story.append(Spacer(1, 20))
 
         # Case information
-        case_info = [
+        case_info: List[List[str]] = [
             ["Doctor:", doctor_name],
             ["Patient:", patient_name],
             ["Case Number:", case_number],
@@ -481,7 +971,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
             ["Time:", datetime.now().strftime("%I:%M %p")]
         ]
 
-        case_table = Table(case_info, colWidths=[1.5 * inch, 4 * inch])
+        case_table: Table = Table(case_info, colWidths=[1.5 * inch, 4 * inch])
         case_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
@@ -496,7 +986,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
         story.append(Spacer(1, 30))
 
         # Sort implant plans by tooth number
-        sorted_plans = sorted(self.implant_plans, key=lambda x: x['tooth_number'])
+        sorted_plans: List[Dict[str, Any]] = sorted(self.implant_plans, key=lambda x: x['tooth_number'])
 
         # Generate drilling protocol for each implant
         for i, plan in enumerate(sorted_plans):
@@ -504,7 +994,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
             story.append(Paragraph(f"IMPLANT #{i + 1} - TOOTH {plan['tooth_number']}", header_style))
 
             # Implant specifications
-            implant_specs = [
+            implant_specs: List[List[str]] = [
                 ["Implant Line:", plan['implant_line']],
                 ["Part Number:", plan['implant_data']['Implant Part No']],
                 ["Diameter:", f"{plan['diameter']} mm"],
@@ -514,7 +1004,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
                 ["Drill Length:", f"{plan['implant_data']['Drill Length']} mm"]
             ]
 
-            specs_table = Table(implant_specs, colWidths=[1.5 * inch, 2.5 * inch])
+            specs_table: Table = Table(implant_specs, colWidths=[1.5 * inch, 2.5 * inch])
             specs_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
@@ -523,22 +1013,26 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
                 ('TOPPADDING', (0, 0), (-1, -1), 3),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                 ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
-                ('BACKGROUND', (0, 0), (0, -1), colors.lightblue)
+                ('BACKGROUND', (0, 0), (0, -1), colors.Color(0 / 255, 181 / 255, 216 / 255))
+                # Pantone 3597C - Light Blue
             ]))
 
             story.append(specs_table)
             story.append(Spacer(1, 15))
 
             # Drilling sequence
-            story.append(Paragraph("DRILLING SEQUENCE:",
-                                   ParagraphStyle('DrillHeader', parent=styles['Heading3'],
-                                                  fontSize=12, textColor=colors.darkred)))
+            story.append(Paragraph(
+                "DRILLING SEQUENCE:",
+                ParagraphStyle('DrillHeader', parent=styles['Heading3'],
+                               fontSize=12, textColor=colors.Color(14 / 255, 165 / 255, 233 / 255))
+                # Pantone 659C - Medium Blue
+            ))
 
             # Create drilling sequence table
-            drill_data = [["Step", "Drill Type", "Depth (mm)", "Notes"]]
+            drill_data: List[List[str]] = [["Step", "Drill Type", "Depth (mm)", "Notes"]]
 
             # Add drilling steps
-            drill_steps = [
+            drill_steps: List[tuple] = [
                 ("1", "Starter Drill", plan['implant_data']['Starter Drill'], "Initial pilot hole"),
                 ("2", "Initial Drill 1", plan['implant_data']['Initial Drill 1'], "First expansion"),
                 ("3", "Initial Drill 2", plan['implant_data']['Initial Drill 2'], "Second expansion"),
@@ -550,7 +1044,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
 
             drill_data.extend(drill_steps)
 
-            drill_table = Table(drill_data, colWidths=[0.7 * inch, 1.2 * inch, 1 * inch, 2.1 * inch])
+            drill_table: Table = Table(drill_data, colWidths=[0.7 * inch, 1.2 * inch, 1 * inch, 2.1 * inch])
             drill_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
@@ -559,15 +1053,18 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
                 ('TOPPADDING', (0, 0), (-1, -1), 4),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('BACKGROUND', (0, 1), (0, -1), colors.lightgrey)
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(30 / 255, 58 / 255, 138 / 255)),
+                # Pantone 7683C - Dark Blue
+                ('BACKGROUND', (0, 1), (0, -1), colors.Color(14 / 255, 165 / 255, 233 / 255)),
+                # Pantone 659C - Medium Blue
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white)
             ]))
 
             story.append(drill_table)
             story.append(Spacer(1, 20))
 
             # Important notes for each implant
-            notes_text = f"""
+            notes_text: str = f"""
             <b>IMPORTANT NOTES FOR TOOTH {plan['tooth_number']}:</b><br/>
             • Use copious irrigation during drilling<br/>
             • Maintain drilling speed as per manufacturer guidelines<br/>
@@ -583,7 +1080,7 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
         # General surgical notes
         story.append(Paragraph("GENERAL SURGICAL PROTOCOL", header_style))
 
-        general_notes = """
+        general_notes: str = """
         <b>Pre-Surgical Preparation:</b><br/>
         • Verify patient identity and surgical site<br/>
         • Confirm implant specifications and drilling sequence<br/>
@@ -608,20 +1105,66 @@ Primus,PBF5013S,5,13,CGSC-5304,26,13,16.0,16.0,16.0,16.0,16.0,16.0,16.0"""
         story.append(Spacer(1, 20))
 
         # Footer
-        footer_text = f"""
+        footer_text: str = f"""
         <b>Report Generated:</b> {datetime.now().strftime("%B %d, %Y at %I:%M %p")}<br/>
         <b>Software:</b> Primus Implant Report Generator v1.0<br/>
         <b>Total Implants:</b> {len(self.implant_plans)}
         """
 
-        story.append(Paragraph(footer_text,
-                               ParagraphStyle('Footer', parent=styles['Normal'],
-                                              fontSize=8, textColor=colors.grey)))
+        story.append(Paragraph(
+            footer_text,
+            ParagraphStyle('Footer', parent=styles['Normal'],
+                           fontSize=8, textColor=colors.grey)
+        ))
 
         # Build PDF
         doc.build(story)
 
+    def add_logo_to_report(self, story: List[Any]) -> bool:
+        """Add the Inosys logo to the PDF report"""
+        logo_files: List[str] = [
+            "inosys_logo.png",
+            "inosys_logo.jpg",
+            "inosys_logo.jpeg",
+            "logo.png",
+            "logo.jpg",
+            "logo.jpeg",
+            "icon.png",
+            "icon.jpg",
+            "icon.jpeg"
+        ]
+
+        for logo_file in logo_files:
+            if os.path.exists(logo_file):
+                try:
+                    # Get original image dimensions to maintain aspect ratio
+                    with PILImage.open(logo_file) as pil_image:
+                        original_width, original_height = pil_image.size
+                        aspect_ratio = original_width / original_height
+
+                        # Set desired height and calculate width to maintain aspect ratio
+                        desired_height = 0.8 * inch
+                        calculated_width = desired_height * aspect_ratio
+
+                        # Create logo image for PDF with proper aspect ratio
+                        logo_image = Image(logo_file, width=calculated_width, height=desired_height)
+                        logo_image.hAlign = 'LEFT'
+                        story.append(logo_image)
+
+                        print(f"Logo added to PDF report from {logo_file}")
+                        print(f"Original dimensions: {original_width}x{original_height}")
+                        print(f"PDF dimensions: {calculated_width / inch:.2f}\" x {desired_height / inch:.2f}\"")
+                        print(f"Aspect ratio maintained: {aspect_ratio:.2f}")
+                        return True
+
+                except Exception as e:
+                    print(f"Error adding logo to PDF from {logo_file}: {str(e)}")
+                    continue
+
+        print("Logo file not found for PDF report")
+        return False
+
 
 if __name__ == "__main__":
-    app = PrimusImplantApp()
+    app: PrimusImplantApp = PrimusImplantApp()
     app.mainloop()
