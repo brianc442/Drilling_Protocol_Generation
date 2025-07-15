@@ -951,7 +951,8 @@ class PrimusImplantApp(ctk.CTk):
             topMargin=0.5 * inch,
             bottomMargin=0.5 * inch,
             leftMargin=0.5 * inch,
-            rightMargin=0.5 * inch
+            rightMargin=0.5 * inch,
+            title="Drilling Protocol"
         )
         styles = getSampleStyleSheet()
         story: List[Any] = []
