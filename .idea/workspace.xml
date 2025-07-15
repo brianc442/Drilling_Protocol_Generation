@@ -4,13 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b1ec59c0-16b0-4b41-bf78-77926854a3f3" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/icon.ico" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/icon.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/inosys_logo (transparant).png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/inosys_logo.png" afterDir="false" />
+    <list default="true" id="b1ec59c0-16b0-4b41-bf78-77926854a3f3" name="Changes" comment="Added logo &amp; icon, changed color scheme to conform with brand identity, improved layout">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/New.py" beforeDir="false" afterPath="$PROJECT_DIR$/New.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -152,7 +147,15 @@
       <option name="project" value="LOCAL" />
       <updated>1752519807773</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Added logo &amp; icon, changed color scheme to conform with brand identity, improved layout">
+      <option name="closed" value="true" />
+      <created>1752585701536</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1752585701536</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -173,6 +176,7 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="First Commit" />
     <MESSAGE value="Added explicit typing and loading of CSV files" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added explicit typing and loading of CSV files" />
+    <MESSAGE value="Added logo &amp; icon, changed color scheme to conform with brand identity, improved layout" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added logo &amp; icon, changed color scheme to conform with brand identity, improved layout" />
   </component>
 </project>
