@@ -798,6 +798,28 @@ class PrimusImplantApp(ctk.CTk):
             messagebox.showerror("Error", "No matching implant found in database for the selected specifications!")
             return
 
+        # Check if the implant/drill length combination is valid
+        implant_row = matching_implant.iloc[0]
+        drill_fields = ['Starter Drill', 'Initial Drill 1', 'Initial Drill 2', 'Drill 1', 'Drill 2', 'Drill 3',
+                        'Drill 4']
+
+        # Check if any drill field contains 'x' (indicating invalid combination)
+        invalid_drills = []
+        for field in drill_fields:
+            if str(implant_row[field]).lower().strip() == 'x':
+                invalid_drills.append(field)
+
+        if invalid_drills:
+            invalid_fields_text = ", ".join(invalid_drills)
+            messagebox.showerror(
+                "Invalid Implant/Drill Length Combination",
+                f"The selected implant length ({length}mm) and drill length ({implant_row['Drill Length']}mm) "
+                f"combination is not compatible.\n\n"
+                f"Invalid drill stages: {invalid_fields_text}\n\n"
+                f"Please select a different implant length or offset to find a valid drilling protocol."
+            )
+            return
+
         # Track which teeth were added and which were replaced
         added_teeth: List[int] = []
         replaced_teeth: List[int] = []
@@ -810,7 +832,7 @@ class PrimusImplantApp(ctk.CTk):
                 'diameter': diameter,
                 'length': length,
                 'offset': offset,
-                'implant_data': matching_implant.iloc[0].to_dict()
+                'implant_data': implant_row.to_dict()
             }
 
             # Check if tooth already has an implant planned
@@ -1027,8 +1049,12 @@ class PrimusImplantApp(ctk.CTk):
 
         for i, plan in enumerate(sorted_plans):
             # Create drilling sequence string with line breaks for better fitting
-            drill_sequence = f"Start: {plan['implant_data']['Starter Drill']}mm → Init1: {plan['implant_data']['Initial Drill 1']}mm → Init2: {plan['implant_data']['Initial Drill 2']}mm →<br/>" \
-                             f"D1: {plan['implant_data']['Drill 1']}mm → D2: {plan['implant_data']['Drill 2']}mm → D3: {plan['implant_data']['Drill 3']}mm → D4: {plan['implant_data']['Drill 4']}mm"
+            # Handle 'x' values in drilling sequence
+            def format_drill_value(value):
+                return "N/A" if str(value).lower().strip() == 'x' else f"{value}mm"
+
+            drill_sequence = f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])} →<br/>" \
+                             f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
 
             implant_data.append([
                 str(plan['tooth_number']),
