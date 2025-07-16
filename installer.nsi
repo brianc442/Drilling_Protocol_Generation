@@ -27,7 +27,7 @@ SetCompressor lzma
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
-!define MUI_FINISHPAGE_RUN "$INSTDIR\Primus Dental Implant Report Generator 1.0.2.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Primus Dental Implant Report Generator.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -48,7 +48,7 @@ ShowUnInstDetails show
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite ifnewer
-  File "dist\Primus Dental Implant Report Generator.exe"
+  File "dist\Primus Dental Implant Report Generator 1.0.2.exe"
   File "icon.ico"
   File "inosys_logo.png"
   File "Primus Implant List - Primus Implant List.csv"
