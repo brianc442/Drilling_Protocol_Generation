@@ -18,9 +18,9 @@ from typing import Dict, List, Any, Optional, Callable
 from PIL import Image as PILImage
 
 # Application version information
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 APP_BUILD_DATE = "2025-07-16"
-UPDATE_SERVER_PATH = r"\\CDIMANQ30\Creoman-Active\CADCAM\Software"
+UPDATE_SERVER_PATH = r"\\CDIMANQ30\Creoman-Active\CADCAM\Software\Primus Dental Implant Report Generator"
 UPDATE_FILENAME = "Primus Dental Implant Report Generator.exe"
 
 # Set appearance mode and color theme
@@ -219,6 +219,7 @@ class PrimusImplantApp(ctk.CTk):
         self.implant_length_combo: ctk.CTkComboBox
         self.offset_var: ctk.StringVar
         self.offset_combo: ctk.CTkComboBox
+        self.surgical_approach_var: ctk.StringVar
         self.plan_scrollable_frame: ctk.CTkScrollableFrame
         self.doctor_name_entry: ctk.CTkEntry
         self.patient_name_entry: ctk.CTkEntry
@@ -949,6 +950,42 @@ del "%~f0"
         )
         self.offset_combo.grid(row=3, column=1, padx=10, pady=5, sticky="ew")
 
+        # Surgical Approach (Flap/Flapless)
+        ctk.CTkLabel(
+            input_frame,
+            text="Surgical Approach:",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color=INOSYS_COLORS["text_primary"]
+        ).grid(row=4, column=0, padx=10, pady=5, sticky="w")
+
+        # Radio button frame
+        approach_frame = ctk.CTkFrame(input_frame, fg_color="transparent")
+        approach_frame.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
+
+        self.surgical_approach_var = ctk.StringVar(value="flapless")
+
+        flap_radio = ctk.CTkRadioButton(
+            approach_frame,
+            text="Flap",
+            variable=self.surgical_approach_var,
+            value="flap",
+            text_color=INOSYS_COLORS["text_primary"],
+            fg_color=INOSYS_COLORS["medium_blue"],
+            hover_color=INOSYS_COLORS["light_blue"]
+        )
+        flap_radio.pack(side="left", padx=(0, 20))
+
+        flapless_radio = ctk.CTkRadioButton(
+            approach_frame,
+            text="Flapless",
+            variable=self.surgical_approach_var,
+            value="flapless",
+            text_color=INOSYS_COLORS["text_primary"],
+            fg_color=INOSYS_COLORS["medium_blue"],
+            hover_color=INOSYS_COLORS["light_blue"]
+        )
+        flapless_radio.pack(side="left")
+
         # Configure grid weights
         input_frame.columnconfigure(1, weight=1)
 
@@ -1097,7 +1134,8 @@ del "%~f0"
             messagebox.showerror("Error", "Please select at least one tooth first!")
             return
 
-        if not all([self.implant_diameter_var.get(), self.implant_length_var.get(), self.offset_var.get()]):
+        if not all([self.implant_diameter_var.get(), self.implant_length_var.get(), self.offset_var.get(),
+                    self.surgical_approach_var.get()]):
             messagebox.showerror("Error", "Please fill in all fields!")
             return
 
@@ -1150,6 +1188,7 @@ del "%~f0"
                 'diameter': diameter,
                 'length': length,
                 'offset': offset,
+                'surgical_approach': self.surgical_approach_var.get(),
                 'implant_data': implant_row.to_dict()
             }
 
@@ -1183,6 +1222,7 @@ del "%~f0"
         self.implant_diameter_var.set("")
         self.implant_length_var.set("")
         self.offset_var.set("")
+        self.surgical_approach_var.set("flapless")
         self.tooth_diagram.clear_selection()
 
     def update_plan_display(self) -> None:
@@ -1201,9 +1241,10 @@ del "%~f0"
             plan_frame.pack(fill="x", padx=10, pady=5)
 
             # Plan details
+            approach_text = "Flap" if plan.get('surgical_approach', 'flap') == 'flap' else "Flapless"
             details_text: str = (
                 f"Tooth {plan['tooth_number']}: {plan['implant_line']} - "
-                f"{plan['diameter']}mm × {plan['length']}mm (Offset: {plan['offset']}mm)"
+                f"{plan['diameter']}mm × {plan['length']}mm (Offset: {plan['offset']}mm) - {approach_text}"
             )
             details_label: ctk.CTkLabel = ctk.CTkLabel(
                 plan_frame,
@@ -1364,7 +1405,8 @@ del "%~f0"
         story.append(Paragraph("IMPLANT SPECIFICATIONS & DRILLING PROTOCOL", header_style))
 
         # Main implant data table with all information
-        implant_data = [["Tooth", "Part No.", "Dia.", "Len.", "Offset", "Guide", "Drill Len.", "Drilling Sequence"]]
+        implant_data = [
+            ["Tooth", "Part No.", "Dia.", "Len.", "Offset", "Approach", "Guide", "Drill Len.", "Drilling Sequence"]]
 
         for i, plan in enumerate(sorted_plans):
             # Create drilling sequence string with line breaks for better fitting
@@ -1375,12 +1417,15 @@ del "%~f0"
             drill_sequence = f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])} →<br/>" \
                              f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
 
+            approach_display = "Flap" if plan.get('surgical_approach', 'flap') == 'flap' else "Flapless"
+
             implant_data.append([
                 str(plan['tooth_number']),
                 plan['implant_data']['Implant Part No'],
                 f"{plan['diameter']}mm",
                 f"{plan['length']}mm",
                 f"{plan['offset']}mm",
+                approach_display,
                 plan['implant_data']['Guide Sleeve'],
                 f"{plan['implant_data']['Drill Length']}mm",
                 Paragraph(drill_sequence, ParagraphStyle('DrillSeq',
@@ -1390,8 +1435,8 @@ del "%~f0"
             ])
 
         # Create table with appropriate column widths
-        col_widths = [0.5 * inch, 1.1 * inch, 0.45 * inch, 0.45 * inch, 0.55 * inch, 0.85 * inch, 0.65 * inch,
-                      3.1 * inch]
+        col_widths = [0.4 * inch, 1 * inch, 0.4 * inch, 0.4 * inch, 0.45 * inch, 0.55 * inch, 0.75 * inch, 0.6 * inch,
+                      2.8 * inch]
         implant_table: Table = Table(implant_data, colWidths=col_widths, repeatRows=1)
 
         implant_table.setStyle(TableStyle([
@@ -1429,6 +1474,7 @@ del "%~f0"
                 "• Check all instruments and drill bits\n"
                 "• Ensure proper guide sleeve placement",
 
+                "• Begin with the point drill in D4 bone\n"
                 "• Use intermittent drilling (15-30 sec intervals)\n"
                 "• Speed: 800-1200 RPM initial, 600-800 RPM final\n"
                 "• Apply light pressure - let drill do the work\n"

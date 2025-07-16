@@ -4,21 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b1ec59c0-16b0-4b41-bf78-77926854a3f3" name="Changes" comment="Build 1.0.1&#10;Help-About and Update button added">
-      <change afterPath="$PROJECT_DIR$/Primus Dental Implant Report Generator 1.0.1.spec" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Analysis-00.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/EXE-00.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PKG-00.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PYZ-00.pyz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PYZ-00.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Primus Dental Implant Report Generator 1.0.1.pkg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Tree-00.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Tree-01.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Tree-02.toc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/base_library.zip" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/warn-Primus Dental Implant Report Generator 1.0.1.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/xref-Primus Dental Implant Report Generator 1.0.1.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator 1.0.1.exe" afterDir="false" />
+    <list default="true" id="b1ec59c0-16b0-4b41-bf78-77926854a3f3" name="Changes" comment="Build 1.0.1&#10;Changed update path">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Analysis-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Analysis-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/EXE-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/EXE-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PKG-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PKG-00.toc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator 1.0.1.exe" beforeDir="false" afterPath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator 1.0.1.exe" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator.exe" beforeDir="false" afterPath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator.exe" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -223,7 +215,15 @@
       <option name="project" value="LOCAL" />
       <updated>1752672550055</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Build 1.0.1&#10;Changed update path">
+      <option name="closed" value="true" />
+      <created>1752673814904</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1752673814904</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -253,6 +253,7 @@
     <MESSAGE value="Build 1.0.0.0" />
     <MESSAGE value="Build 1.0.0.1&#10;Added title to PDFs" />
     <MESSAGE value="Build 1.0.1&#10;Help-About and Update button added" />
-    <option name="LAST_COMMIT_MESSAGE" value="Build 1.0.1&#10;Help-About and Update button added" />
+    <MESSAGE value="Build 1.0.1&#10;Changed update path" />
+    <option name="LAST_COMMIT_MESSAGE" value="Build 1.0.1&#10;Changed update path" />
   </component>
 </project>
