@@ -2,7 +2,7 @@
 ; Created with NSIS (http://nsis.sourceforge.net/)
 
 !define PRODUCT_NAME "Primus Dental Implant Report Generator"
-!define PRODUCT_VERSION "1.0.0"
+!define PRODUCT_VERSION "1.0.2"
 !define PRODUCT_PUBLISHER "Inosys Implant"
 !define PRODUCT_WEB_SITE "https://www.inosys.com"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\PrimusReportGen.exe"

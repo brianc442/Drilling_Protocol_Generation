@@ -192,7 +192,7 @@ class PrimusImplantApp(ctk.CTk):
         super().__init__()
 
         self.title("Primus Dental Implant Report Generator")
-        self.geometry("1200x900")
+        self.geometry("900x950")
 
         # Set window icon
         self.set_window_icon()
