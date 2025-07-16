@@ -10,16 +10,23 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 import os
 import sys
+import shutil
+import subprocess
+import threading
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Callable
 from PIL import Image as PILImage
 
+# Application version information
+APP_VERSION = "1.0.1"
+APP_BUILD_DATE = "2025-07-16"
+UPDATE_SERVER_PATH = r"\\CDIMANQ30\Creoman-Active\CADCAM\Software"
+UPDATE_FILENAME = "Primus Dental Implant Report Generator.exe"
+
 # Set appearance mode and color theme
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
-
 # Pantone Color Definitions
-# Pantone 3597C - Light Blue
 PANTONE_3597C = "#00B5D8"  # Light blue
 # Pantone 7683C - Dark Blue
 PANTONE_7683C = "#1E3A8A"  # Dark blue
@@ -221,6 +228,7 @@ class PrimusImplantApp(ctk.CTk):
         self.load_implant_data()
 
         self.create_widgets()
+        self.create_menu()
 
     def load_implant_data(self) -> None:
         """Load implant data from CSV file"""
@@ -519,6 +527,316 @@ class PrimusImplantApp(ctk.CTk):
 
         print("Note: Taskbar icons work best when the application is run as an executable (.exe)")
         print("Consider using PyInstaller with --icon=icon.ico for production deployment")
+
+    def create_menu(self) -> None:
+        """Create the application menu bar"""
+        # Create menu bar
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self.show_about_dialog)
+        help_menu.add_separator()
+        help_menu.add_command(label="Check for Updates", command=self.check_for_updates)
+
+    def show_about_dialog(self) -> None:
+        """Show the About dialog"""
+        about_window = ctk.CTkToplevel(self)
+        about_window.title("About")
+        about_window.geometry("400x300")
+        about_window.resizable(False, False)
+        about_window.configure(fg_color=INOSYS_COLORS["background_primary"])
+
+        # Center the window
+        about_window.transient(self)
+        about_window.grab_set()
+
+        # Main frame
+        main_frame = ctk.CTkFrame(about_window, fg_color=INOSYS_COLORS["background_secondary"])
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Logo (if available)
+        self.add_logo_to_about(main_frame)
+
+        # Application name
+        app_name_label = ctk.CTkLabel(
+            main_frame,
+            text="Primus Dental Implant\nReport Generator",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=INOSYS_COLORS["light_blue"]
+        )
+        app_name_label.pack(pady=(10, 5))
+
+        # Version information
+        version_label = ctk.CTkLabel(
+            main_frame,
+            text=f"Version {APP_VERSION}",
+            font=ctk.CTkFont(size=12),
+            text_color=INOSYS_COLORS["text_primary"]
+        )
+        version_label.pack(pady=2)
+
+        build_label = ctk.CTkLabel(
+            main_frame,
+            text=f"Build Date: {APP_BUILD_DATE}",
+            font=ctk.CTkFont(size=10),
+            text_color=INOSYS_COLORS["text_secondary"]
+        )
+        build_label.pack(pady=2)
+
+        # Company information
+        company_label = ctk.CTkLabel(
+            main_frame,
+            text="© 2025 Inosys Implant\nAll rights reserved.",
+            font=ctk.CTkFont(size=10),
+            text_color=INOSYS_COLORS["text_secondary"]
+        )
+        company_label.pack(pady=(15, 10))
+
+        # System information
+        python_version = f"Python {sys.version.split()[0]}"
+        system_label = ctk.CTkLabel(
+            main_frame,
+            text=f"Runtime: {python_version}",
+            font=ctk.CTkFont(size=9),
+            text_color=INOSYS_COLORS["text_secondary"]
+        )
+        system_label.pack(pady=2)
+
+        # Close button
+        close_button = ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=about_window.destroy,
+            width=100,
+            height=30,
+            fg_color=INOSYS_COLORS["medium_blue"],
+            hover_color=INOSYS_COLORS["light_blue"]
+        )
+        close_button.pack(pady=(15, 10))
+
+    def add_logo_to_about(self, parent_frame: ctk.CTkFrame) -> None:
+        """Add logo to about dialog if available"""
+        logo_files = ["inosys_logo.png", "logo.png", "icon.png"]
+
+        for logo_file in logo_files:
+            if os.path.exists(logo_file):
+                try:
+                    pil_image = PILImage.open(logo_file)
+                    # Resize for about dialog
+                    original_width, original_height = pil_image.size
+                    aspect_ratio = original_width / original_height
+                    new_height = 60
+                    new_width = int(new_height * aspect_ratio)
+
+                    logo_image = ctk.CTkImage(
+                        light_image=pil_image,
+                        dark_image=pil_image,
+                        size=(new_width, new_height)
+                    )
+
+                    logo_label = ctk.CTkLabel(parent_frame, image=logo_image, text="")
+                    logo_label.pack(pady=(10, 0))
+                    return
+                except Exception as e:
+                    print(f"Could not load logo for about dialog: {e}")
+                    continue
+
+    def check_for_updates(self) -> None:
+        """Check for updates and initiate download if available"""
+        # Show checking dialog
+        checking_dialog = self.show_update_dialog("Checking for updates...", show_progress=True)
+
+        # Run update check in separate thread to avoid blocking UI
+        update_thread = threading.Thread(target=self._update_check_worker, args=(checking_dialog,))
+        update_thread.daemon = True
+        update_thread.start()
+
+    def _update_check_worker(self, checking_dialog: ctk.CTkToplevel) -> None:
+        """Worker thread for checking and downloading updates"""
+        try:
+            update_path = os.path.join(UPDATE_SERVER_PATH, UPDATE_FILENAME)
+
+            # Check if update file exists
+            if not os.path.exists(update_path):
+                self.after(100, lambda: self._show_update_result(checking_dialog, "no_update"))
+                return
+
+            # Get current executable path
+            if getattr(sys, 'frozen', False):
+                current_exe = sys.executable
+            else:
+                # For development, use a placeholder
+                current_exe = "main.py"
+
+            # Compare file sizes or modification times (simple update detection)
+            try:
+                update_stat = os.stat(update_path)
+                current_stat = os.stat(current_exe) if os.path.exists(current_exe) else None
+
+                if current_stat and update_stat.st_mtime <= current_stat.st_mtime:
+                    self.after(100, lambda: self._show_update_result(checking_dialog, "up_to_date"))
+                    return
+            except:
+                pass  # If we can't compare, proceed with update
+
+            # Update available, start download
+            self.after(100, lambda: self._show_update_result(checking_dialog, "update_available", update_path))
+
+        except Exception as e:
+            error_msg = f"Update check failed: {str(e)}"
+            self.after(100, lambda: self._show_update_result(checking_dialog, "error", error_msg))
+
+    def _show_update_result(self, checking_dialog: ctk.CTkToplevel, result: str, data: Optional[str] = None) -> None:
+        """Show the result of update check"""
+        checking_dialog.destroy()
+
+        if result == "no_update":
+            messagebox.showinfo("No Updates", "No updates are available at this time.")
+        elif result == "up_to_date":
+            messagebox.showinfo("Up to Date", "You are running the latest version.")
+        elif result == "error":
+            messagebox.showerror("Update Error", data or "An error occurred while checking for updates.")
+        elif result == "update_available":
+            if messagebox.askyesno("Update Available",
+                                   "A new version is available. Would you like to download and install it now?\n\n"
+                                   "The application will restart after the update."):
+                self._download_and_install_update(data)
+
+    def _download_and_install_update(self, update_path: str) -> None:
+        """Download and install the update"""
+        progress_dialog = self.show_update_dialog("Downloading update...", show_progress=True)
+
+        # Run download in separate thread
+        download_thread = threading.Thread(target=self._download_worker, args=(update_path, progress_dialog))
+        download_thread.daemon = True
+        download_thread.start()
+
+    def _download_worker(self, update_path: str, progress_dialog: ctk.CTkToplevel) -> None:
+        """Worker thread for downloading and installing update"""
+        try:
+            # Get current executable info
+            if getattr(sys, 'frozen', False):
+                current_exe = sys.executable
+                current_dir = os.path.dirname(current_exe)
+                current_name = os.path.basename(current_exe)
+            else:
+                # For development mode
+                self.after(100, lambda: self._show_download_result(progress_dialog, "error",
+                                                                   "Updates are only available for compiled executables."))
+                return
+
+            # Create backup of current executable
+            backup_path = os.path.join(current_dir, f"{current_name}.backup")
+            shutil.copy2(current_exe, backup_path)
+
+            # Copy new executable
+            temp_path = os.path.join(current_dir, f"{current_name}.new")
+            shutil.copy2(update_path, temp_path)
+
+            # Create update script
+            update_script = self._create_update_script(current_exe, temp_path, backup_path)
+
+            self.after(100, lambda: self._show_download_result(progress_dialog, "success", update_script))
+
+        except Exception as e:
+            error_msg = f"Update installation failed: {str(e)}"
+            self.after(100, lambda: self._show_download_result(progress_dialog, "error", error_msg))
+
+    def _create_update_script(self, current_exe: str, temp_path: str, backup_path: str) -> str:
+        """Create a batch script to complete the update"""
+        script_content = f'''@echo off
+echo Updating Primus Dental Implant Report Generator...
+timeout /t 2 /nobreak >nul
+
+REM Replace the executable
+move "{temp_path}" "{current_exe}"
+
+REM Update shortcuts
+set "desktop_shortcut=%USERPROFILE%\\Desktop\\Primus Report Generator.lnk"
+set "startmenu_shortcut=%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Inosys\\Primus Report Generator.lnk"
+
+REM Update desktop shortcut if it exists
+if exist "%desktop_shortcut%" (
+    del "%desktop_shortcut%"
+    powershell "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%desktop_shortcut%'); $s.TargetPath = '{current_exe}'; $s.Save()"
+)
+
+REM Update start menu shortcut if it exists
+if exist "%startmenu_shortcut%" (
+    del "%startmenu_shortcut%"
+    powershell "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%startmenu_shortcut%'); $s.TargetPath = '{current_exe}'; $s.Save()"
+)
+
+REM Clean up backup after successful update
+if exist "{current_exe}" (
+    del "{backup_path}"
+) else (
+    REM Restore backup if update failed
+    move "{backup_path}" "{current_exe}"
+)
+
+REM Restart the application
+start "" "{current_exe}"
+
+REM Delete this script
+del "%~f0"
+'''
+
+        script_path = os.path.join(os.path.dirname(current_exe), "update_primus.bat")
+        with open(script_path, 'w') as f:
+            f.write(script_content)
+
+        return script_path
+
+    def _show_download_result(self, progress_dialog: ctk.CTkToplevel, result: str, data: str) -> None:
+        """Show the result of download/installation"""
+        progress_dialog.destroy()
+
+        if result == "error":
+            messagebox.showerror("Update Error", data)
+        elif result == "success":
+            if messagebox.showinfo("Update Ready",
+                                   "Update downloaded successfully. The application will now restart to complete the installation."):
+                # Execute the update script and exit
+                subprocess.Popen(data, shell=True)
+                self.quit()
+
+    def show_update_dialog(self, message: str, show_progress: bool = False) -> ctk.CTkToplevel:
+        """Show a dialog for update operations"""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Update")
+        dialog.geometry("300x150")
+        dialog.resizable(False, False)
+        dialog.configure(fg_color=INOSYS_COLORS["background_primary"])
+
+        # Center the dialog
+        dialog.transient(self)
+        dialog.grab_set()
+
+        # Main frame
+        main_frame = ctk.CTkFrame(dialog, fg_color=INOSYS_COLORS["background_secondary"])
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Message
+        message_label = ctk.CTkLabel(
+            main_frame,
+            text=message,
+            font=ctk.CTkFont(size=12),
+            text_color=INOSYS_COLORS["text_primary"]
+        )
+        message_label.pack(pady=20)
+
+        # Progress bar (if requested)
+        if show_progress:
+            progress = ctk.CTkProgressBar(main_frame, width=200)
+            progress.pack(pady=10)
+            progress.configure(mode="indeterminate")
+            progress.start()
+
+        return dialog
 
     def setup_add_implant_tab(self) -> None:
         tab: ctk.CTkFrame = self.notebook.tab("Add Implant")

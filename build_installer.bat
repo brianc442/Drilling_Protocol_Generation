@@ -1,1 +1,2 @@
-python -m PyInstaller --onefile --windowed --icon=icon.ico main.py
+cd C:\Users\bconn\PycharmProjects\Drilling Protocol Generation
+python -m PyInstaller --onefile --windowed --icon=icon.ico --name "Primus Dental Implant Report Generator 1.0.1" --add-data="icon.ico:." --add-data="inosys_logo.png:." --add-data="Primus Implant List - Primus Implant List.csv:." main.py

@@ -50,7 +50,6 @@ Section "MainSection" SEC01
   SetOverwrite ifnewer
   File "dist\Primus Dental Implant Report Generator.exe"
   File "icon.ico"
-  File "icon.png"
   File "inosys_logo.png"
   File "Primus Implant List - Primus Implant List.csv"
 
