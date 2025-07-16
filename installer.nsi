@@ -27,7 +27,7 @@ SetCompressor lzma
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
-!define MUI_FINISHPAGE_RUN "$INSTDIR\Primus Dental Implant Report Generator.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Primus Dental Implant Report Generator 1.0.2.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
