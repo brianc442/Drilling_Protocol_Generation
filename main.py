@@ -270,6 +270,20 @@ class PrimusImplantApp(ctk.CTk):
             messagebox.showerror("Error", f"Unexpected error loading implant data: {str(e)}")
             self.implant_data = pd.DataFrame()
 
+    def bind_enter_keys(self) -> None:
+        """Bind Enter key to appropriate actions based on current tab"""
+
+        def on_enter_pressed(event):
+            current_tab = self.notebook.get()
+            if current_tab == "Add Implant":
+                self.add_implants_to_plan()
+            elif current_tab == "Generate Report":
+                self.generate_pdf_report()
+
+        # Bind to the main window
+        self.bind('<Return>', on_enter_pressed)
+        self.bind('<KP_Enter>', on_enter_pressed)  # Numpad Enter
+
     def create_widgets(self) -> None:
         # Main container
         main_frame: ctk.CTkFrame = ctk.CTkFrame(self, fg_color=INOSYS_COLORS["background_secondary"])
@@ -313,6 +327,8 @@ class PrimusImplantApp(ctk.CTk):
         self.setup_add_implant_tab()
         self.setup_review_plan_tab()
         self.setup_generate_report_tab()
+
+        self.bind_enter_keys()
 
     def load_and_display_logo(self, parent_frame: ctk.CTkFrame) -> None:
         """Load and display the Inosys logo in the GUI"""
@@ -658,12 +674,41 @@ class PrimusImplantApp(ctk.CTk):
     def _update_check_worker(self, checking_dialog: ctk.CTkToplevel) -> None:
         """Worker thread for checking and downloading updates"""
         try:
-            update_path = os.path.join(UPDATE_SERVER_PATH, UPDATE_FILENAME)
+            # Look for version-specific files first, then fall back to generic name
+            version_specific_filename = f"Primus Dental Implant Report Generator v{APP_VERSION}.exe"
+            generic_filename = UPDATE_FILENAME
 
-            # Check if update file exists
-            if not os.path.exists(update_path):
-                self.after(100, lambda: self._show_update_result(checking_dialog, "no_update"))
-                return
+            version_specific_path = os.path.join(UPDATE_SERVER_PATH, version_specific_filename)
+            generic_path = os.path.join(UPDATE_SERVER_PATH, generic_filename)
+
+            update_path = None
+
+            # Check for newer version files (look for versions higher than current)
+            try:
+                if os.path.exists(UPDATE_SERVER_PATH):
+                    for filename in os.listdir(UPDATE_SERVER_PATH):
+                        if filename.startswith("Primus Dental Implant Report Generator v") and filename.endswith(
+                                ".exe"):
+                            # Extract version from filename
+                            try:
+                                version_part = filename.replace("Primus Dental Implant Report Generator v", "").replace(
+                                    ".exe", "")
+                                # Simple version comparison (works for x.y.z format)
+                                if self._is_newer_version(version_part, APP_VERSION):
+                                    update_path = os.path.join(UPDATE_SERVER_PATH, filename)
+                                    break
+                            except:
+                                continue
+            except:
+                pass
+
+            # If no version-specific newer file found, check generic file
+            if not update_path:
+                if os.path.exists(generic_path):
+                    update_path = generic_path
+                else:
+                    self.after(100, lambda: self._show_update_result(checking_dialog, "no_update"))
+                    return
 
             # Get current executable path
             if getattr(sys, 'frozen', False):
@@ -677,7 +722,7 @@ class PrimusImplantApp(ctk.CTk):
                 update_stat = os.stat(update_path)
                 current_stat = os.stat(current_exe) if os.path.exists(current_exe) else None
 
-                if current_stat and update_stat.st_mtime <= current_stat.st_mtime:
+                if current_stat and update_stat.st_mtime <= current_stat.st_mtime and update_path == generic_path:
                     self.after(100, lambda: self._show_update_result(checking_dialog, "up_to_date"))
                     return
             except:
@@ -689,6 +734,21 @@ class PrimusImplantApp(ctk.CTk):
         except Exception as e:
             error_msg = f"Update check failed: {str(e)}"
             self.after(100, lambda: self._show_update_result(checking_dialog, "error", error_msg))
+
+    def _is_newer_version(self, version1: str, version2: str) -> bool:
+        """Compare two version strings (e.g., '1.0.2' vs '1.0.1')"""
+        try:
+            v1_parts = [int(x) for x in version1.split('.')]
+            v2_parts = [int(x) for x in version2.split('.')]
+
+            # Pad shorter version with zeros
+            max_len = max(len(v1_parts), len(v2_parts))
+            v1_parts.extend([0] * (max_len - len(v1_parts)))
+            v2_parts.extend([0] * (max_len - len(v2_parts)))
+
+            return v1_parts > v2_parts
+        except:
+            return False
 
     def _show_update_result(self, checking_dialog: ctk.CTkToplevel, result: str, data: Optional[str] = None) -> None:
         """Show the result of update check"""
@@ -1241,10 +1301,9 @@ del "%~f0"
             plan_frame.pack(fill="x", padx=10, pady=5)
 
             # Plan details
-            approach_text = "Flap" if plan.get('surgical_approach', 'flap') == 'flap' else "Flapless"
             details_text: str = (
                 f"Tooth {plan['tooth_number']}: {plan['implant_line']} - "
-                f"{plan['diameter']}mm × {plan['length']}mm (Offset: {plan['offset']}mm) - {approach_text}"
+                f"{plan['diameter']}mm × {plan['length']}mm (Offset: {plan['offset']}mm)"
             )
             details_label: ctk.CTkLabel = ctk.CTkLabel(
                 plan_frame,
@@ -1404,20 +1463,26 @@ del "%~f0"
         # Create comprehensive implant summary table
         story.append(Paragraph("IMPLANT SPECIFICATIONS & DRILLING PROTOCOL", header_style))
 
-        # Main implant data table with all information
+        # Main implant data table with better column sizing
+        # Main implant data table with better balanced column sizing
+        # Main implant data table with better balanced column sizing
         implant_data = [
-            ["Tooth", "Part No.", "Dia.", "Len.", "Offset", "Approach", "Guide", "Drill Len.", "Drilling Sequence"]]
+            ["Tooth", "Part Number", "Dia.", "Len.", "Offset", "Guide Sleeve", "Drill Length", "Drilling Sequence"]]
 
         for i, plan in enumerate(sorted_plans):
-            # Create drilling sequence string with line breaks for better fitting
+            # Create drilling sequence string with surgical approach instructions
             # Handle 'x' values in drilling sequence
             def format_drill_value(value):
                 return "N/A" if str(value).lower().strip() == 'x' else f"{value}mm"
 
-            drill_sequence = f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])} →<br/>" \
-                             f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
+            # Determine approach text
+            is_flapless = plan.get('surgical_approach', 'flapless') == 'flapless'
+            approach_instruction = "Tissue punch → Drill to bone → clear tissue" if is_flapless else "Open flap and reflect tissue prior to seating surgical guide"
 
-            approach_display = "Flap" if plan.get('surgical_approach', 'flap') == 'flap' else "Flapless"
+            # Create drilling sequence with approach instruction - more compact formatting
+            drill_sequence = f"{approach_instruction}<br/>" \
+                             f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])}<br/>" \
+                             f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
 
             implant_data.append([
                 str(plan['tooth_number']),
@@ -1425,34 +1490,49 @@ del "%~f0"
                 f"{plan['diameter']}mm",
                 f"{plan['length']}mm",
                 f"{plan['offset']}mm",
-                approach_display,
                 plan['implant_data']['Guide Sleeve'],
                 f"{plan['implant_data']['Drill Length']}mm",
                 Paragraph(drill_sequence, ParagraphStyle('DrillSeq',
                                                          parent=styles['Normal'],
                                                          fontSize=7,
-                                                         leading=9))
+                                                         fontName='Helvetica',
+                                                         leading=8))
             ])
 
-        # Create table with appropriate column widths
-        col_widths = [0.4 * inch, 1 * inch, 0.4 * inch, 0.4 * inch, 0.45 * inch, 0.55 * inch, 0.75 * inch, 0.6 * inch,
-                      2.8 * inch]
+        # Better balanced column widths - adjusted for overflow issues
+        col_widths = [
+            0.35 * inch,  # Tooth - slightly smaller
+            0.7 * inch,  # Part Number - fits PBF4010S
+            0.35 * inch,  # Diameter
+            0.45 * inch,  # Length
+            0.4 * inch,  # Offset
+            0.8 * inch,  # Guide Sleeve - increased for CGSC-5304
+            0.65 * inch,  # Drill Length
+            3.0 * inch  # Drilling Sequence - increased back up
+        ]
+
         implant_table: Table = Table(implant_data, colWidths=col_widths, repeatRows=1)
 
         implant_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, 0), 9),
-            ('FONTSIZE', (0, 1), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTSIZE', (0, 1), (6, -1), 7),  # Smaller font for data to prevent overflow
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
             ('LEFTPADDING', (0, 0), (-1, -1), 2),
             ('RIGHTPADDING', (0, 0), (-1, -1), 2),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
             ('BACKGROUND', (0, 0), (-1, 0), colors.Color(30 / 255, 58 / 255, 138 / 255)),  # Dark blue header
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            # Better text wrapping and overflow handling
+            ('WORDWRAP', (1, 1), (1, -1), True),  # Part Number
+            ('WORDWRAP', (5, 1), (5, -1), True),  # Guide Sleeve
+            ('WORDWRAP', (7, 1), (7, -1), True),  # Drilling Sequence
+            # Prevent text overflow
+            ('OVERFLOW', (0, 0), (-1, -1), 'CLIP'),
         ]))
 
         story.append(implant_table)
