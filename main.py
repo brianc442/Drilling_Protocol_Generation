@@ -2189,10 +2189,168 @@ del "%~f0"
         styles = getSampleStyleSheet()
         story: List[Any] = []
 
-        # [Include all the existing PDF creation code here, but add case notes section]
-        # ... (existing PDF creation code) ...
+        # Custom styles
+        title_style: ParagraphStyle = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
+            alignment=TA_CENTER,
+            spaceAfter=20
+        )
 
-        # After the implant table and before the surgical protocol, add case notes if they exist
+        header_style: ParagraphStyle = ParagraphStyle(
+            'CustomHeader',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
+            spaceBefore=10,
+            spaceAfter=8
+        )
+
+        compact_style: ParagraphStyle = ParagraphStyle(
+            'Compact',
+            parent=styles['Normal'],
+            fontSize=9,
+            spaceBefore=2,
+            spaceAfter=2
+        )
+
+        # Header section with logo and title
+        header_data = []
+
+        # Add logo to header if it exists
+        logo_added: bool = self.add_logo_to_report_header(header_data)
+
+        if header_data:
+            # Create header table with logo and title
+            header_table = Table(header_data, colWidths=[3 * inch, 4.5 * inch])
+            header_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            story.append(header_table)
+        else:
+            # No logo, just title
+            story.append(Paragraph("PRIMUS IMPLANT SURGICAL DRILLING PROTOCOL", title_style))
+
+        story.append(Spacer(1, 15))
+
+        # Case information in compact format
+        case_info: List[List[str]] = [
+            ["Doctor:", doctor_name, "Date:", datetime.now().strftime("%B %d, %Y")],
+            ["Patient:", patient_name, "Time:", datetime.now().strftime("%I:%M %p")],
+            ["Case Number:", case_number, "Total Implants:", str(len(self.implant_plans))]
+        ]
+
+        case_table: Table = Table(case_info, colWidths=[1 * inch, 2.3 * inch, 1.2 * inch, 1.5 * inch])
+        case_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+            ('BACKGROUND', (0, 0), (0, -1), colors.Color(0 / 255, 181 / 255, 216 / 255)),  # Light blue
+            ('BACKGROUND', (2, 0), (2, -1), colors.Color(0 / 255, 181 / 255, 216 / 255)),  # Light blue
+        ]))
+
+        story.append(case_table)
+        story.append(Spacer(1, 15))
+
+        # Horizontal line separator
+        from reportlab.platypus import HRFlowable
+        story.append(HRFlowable(width="100%", thickness=2, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))
+        story.append(Spacer(1, 10))
+
+        # Sort implant plans by tooth number
+        sorted_plans: List[Dict[str, Any]] = sorted(self.implant_plans, key=lambda x: x['tooth_number'])
+
+        # Create comprehensive implant summary table
+        story.append(Paragraph("IMPLANT SPECIFICATIONS & DRILLING PROTOCOL", header_style))
+
+        # Main implant data table with better column sizing
+        implant_data = [
+            ["Tooth", "Part Number", "Dia.", "Len.", "Offset", "Guide Sleeve", "Drill Length", "Drilling Sequence"]]
+
+        for i, plan in enumerate(sorted_plans):
+            # Create drilling sequence string with surgical approach instructions
+            # Handle 'x' values in drilling sequence
+            def format_drill_value(value):
+                return "N/A" if str(value).lower().strip() == 'x' else f"{value}mm"
+
+            # Determine approach text
+            is_flapless = plan.get('surgical_approach', 'flapless') == 'flapless'
+            approach_instruction = "Tissue punch → Drill to bone → clear tissue" if is_flapless else "Open flap and reflect tissue prior to seating surgical guide"
+
+            # Create drilling sequence with approach instruction and consistent font
+            drill_sequence = f"<b>{approach_instruction}</b><br/>" \
+                             f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])}<br/>" \
+                             f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
+
+            implant_data.append([
+                str(plan['tooth_number']),
+                plan['implant_data']['Implant Part No'],
+                f"{plan['diameter']}mm",
+                f"{plan['length']}mm",
+                f"{plan['offset']}mm",
+                plan['implant_data']['Guide Sleeve'],
+                f"{plan['implant_data']['Drill Length']}mm",
+                Paragraph(drill_sequence, ParagraphStyle('DrillSeq',
+                                                         parent=styles['Normal'],
+                                                         fontSize=7,
+                                                         fontName='Helvetica',
+                                                         leading=8))
+            ])
+
+        # Better balanced column widths - adjusted for overflow issues
+        col_widths = [
+            0.35 * inch,  # Tooth - slightly smaller
+            0.7 * inch,  # Part Number - fits PBF4010S
+            0.35 * inch,  # Diameter
+            0.45 * inch,  # Length - widened
+            0.4 * inch,  # Offset
+            0.8 * inch,  # Guide Sleeve - increased for CGSC-5304
+            0.65 * inch,  # Drill Length - widened
+            2.9 * inch  # Drilling Sequence - slightly reduced to compensate
+        ]
+
+        implant_table: Table = Table(implant_data, colWidths=col_widths, repeatRows=1)
+
+        implant_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('FONTSIZE', (0, 1), (6, -1), 7),  # Smaller font for data to prevent overflow
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(30 / 255, 58 / 255, 138 / 255)),  # Dark blue header
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            # Better text wrapping and overflow handling
+            ('WORDWRAP', (1, 1), (1, -1), True),  # Part Number
+            ('WORDWRAP', (5, 1), (5, -1), True),  # Guide Sleeve
+            ('WORDWRAP', (7, 1), (7, -1), True),  # Drilling Sequence
+            # Prevent text overflow
+            ('OVERFLOW', (0, 0), (-1, -1), 'CLIP'),
+        ]))
+
+        story.append(implant_table)
+        story.append(Spacer(1, 15))
+
+        # Add case notes if they exist
         if case_notes:
             story.append(Spacer(1, 15))
 
@@ -2218,7 +2376,99 @@ del "%~f0"
             story.append(Paragraph(case_notes, case_notes_style))
             story.append(Spacer(1, 15))
 
-        # [Continue with rest of existing PDF creation code...]
+        # Horizontal line separator
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.Color(14 / 255, 165 / 255, 233 / 255)))
+        story.append(Spacer(1, 10))
+
+        # Compact surgical protocol in two columns
+        story.append(Paragraph("SURGICAL PROTOCOL", header_style))
+
+        protocol_data = [
+            ["PRE-SURGICAL PREPARATION", "DRILLING PROTOCOL"],
+            [
+                "• Verify patient identity and surgical site\n"
+                "• Confirm implant specifications\n"
+                "• Prepare sterile surgical field\n"
+                "• Check all instruments and drill bits\n"
+                "• Ensure proper guide sleeve placement",
+
+                "• Begin with the point drill in D4 bone\n"
+                "• Use intermittent drilling (15-30 sec intervals)\n"
+                "• Speed: 800-1200 RPM initial, 600-800 RPM final\n"
+                "• Apply light pressure - let drill do the work\n"
+                "• Use copious irrigation (minimum 50ml/min)\n"
+                "• Check depth with gauge after each drill"
+            ],
+            ["POST-DRILLING VERIFICATION", "IMPORTANT NOTES"],
+            [
+                "• Irrigate osteotomy thoroughly\n"
+                "• Check final depth and angulation\n"
+                "• Verify diameter with sizing gauge\n"
+                "• Ensure proper guide sleeve function\n"
+                "• Proceed with implant placement protocol",
+
+                "• Follow manufacturer drilling guidelines\n"
+                "• Maintain sterile technique throughout\n"
+                "• Account for offset measurements\n"
+                "• Use depth gauge frequently\n"
+                "• Document any deviations from protocol"
+            ]
+        ]
+
+        protocol_table = Table(protocol_data, colWidths=[3.75 * inch, 3.75 * inch])
+        protocol_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(14 / 255, 165 / 255, 233 / 255)),  # Medium blue
+            ('BACKGROUND', (0, 2), (-1, 2), colors.Color(14 / 255, 165 / 255, 233 / 255)),  # Medium blue
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('TEXTCOLOR', (0, 2), (-1, 2), colors.white),
+        ]))
+
+        story.append(protocol_table)
+        story.append(Spacer(1, 15))
+
+        # Final horizontal line
+        story.append(HRFlowable(width="100%", thickness=2, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))
+        story.append(Spacer(1, 10))
+
+        # Disclaimer section
+        disclaimer_style: ParagraphStyle = ParagraphStyle(
+            'Disclaimer',
+            parent=styles['Normal'],
+            fontSize=8,
+            textColor=colors.Color(60 / 255, 60 / 255, 60 / 255),
+            spaceBefore=10,
+            spaceAfter=5,
+            alignment=TA_LEFT,
+            leading=10
+        )
+
+        story.append(Paragraph("<b>LIMITATION OF LIABILITY:</b>",
+                               ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=9,
+                                              textColor=colors.Color(30 / 255, 58 / 255, 138 / 255))))
+
+        disclaimer_text = """This instruction incorporates a custom document that is based on a surgical plan proposed by the surgeon before operation. The surgeon, therefore, takes full medical responsibility for the design and the application of the surgical guide, the intended used surgical tray kit, implants and sleeves – all as specified on the order form received by the supplier. The custom document shall be considered as an addition to all other documents sent with and pertaining to the case, and it does not replace any of those other documents."""
+
+        story.append(Paragraph(disclaimer_text, disclaimer_style))
+        story.append(Spacer(1, 10))
+
+        # Footer
+        footer_text: str = f"""<b>Report Generated:</b> {datetime.now().strftime("%B %d, %Y at %I:%M %p")} | <b>Software:</b> Primus Implant Report Generator v{APP_VERSION}"""
+
+        story.append(Paragraph(
+            footer_text,
+            ParagraphStyle('Footer', parent=styles['Normal'],
+                           fontSize=7, textColor=colors.grey, alignment=TA_CENTER)
+        ))
 
         # Build PDF
         doc.build(story)
