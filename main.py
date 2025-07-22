@@ -1793,7 +1793,7 @@ del "%~f0"
         # Print Preview button
         preview_button: ctk.CTkButton = ctk.CTkButton(
             button_frame,
-            text="Print Preview",
+            text="View Report",
             command=self.show_print_preview,
             height=50,
             width=180,
@@ -1807,7 +1807,7 @@ del "%~f0"
         # Generate PDF button
         generate_button: ctk.CTkButton = ctk.CTkButton(
             button_frame,
-            text="Generate PDF Report",
+            text="Save Report",
             command=self.generate_pdf_report,
             height=50,
             width=180,
