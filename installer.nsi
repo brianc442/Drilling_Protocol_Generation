@@ -1,7 +1,7 @@
-; Primus Dental Implant Report Generator Installer
+; Primus Implant Report Generator Installer
 ; Created with NSIS (http://nsis.sourceforge.net/)
 
-!define PRODUCT_NAME "Primus Dental Implant Report Generator"
+!define PRODUCT_NAME "Primus Implant Report Generator"
 !define PRODUCT_VERSION "1.0.2"
 !define PRODUCT_PUBLISHER "Inosys Implant"
 !define PRODUCT_WEB_SITE "https://www.inosys.com"
@@ -27,7 +27,7 @@ SetCompressor lzma
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
-!define MUI_FINISHPAGE_RUN "$INSTDIR\Primus Dental Implant Report Generator.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Primus Implant Report Generator.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -48,15 +48,15 @@ ShowUnInstDetails show
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
   SetOverwrite ifnewer
-  File "dist\Primus Dental Implant Report Generator 1.0.2.exe"
+  File "dist\Primus Implant Report Generator 1.0.3.exe"
   File "icon.ico"
   File "inosys_logo.png"
   File "Primus Implant List - Primus Implant List.csv"
 
   ; Create shortcuts
   CreateDirectory "$SMPROGRAMS\Inosys"
-  CreateShortCut "$SMPROGRAMS\Inosys\Primus Report Generator.lnk" "$INSTDIR\Primus Dental Implant Report Generator.exe"
-  CreateShortCut "$DESKTOP\Primus Report Generator.lnk" "$INSTDIR\Primus Dental Implant Report Generator.exe"
+  CreateShortCut "$SMPROGRAMS\Inosys\Primus Report Generator.lnk" "$INSTDIR\Primus Implant Report Generator.exe"
+  CreateShortCut "$DESKTOP\Primus Report Generator.lnk" "$INSTDIR\Primus Implant Report Generator.exe"
 SectionEnd
 
 Section -AdditionalIcons
@@ -68,10 +68,10 @@ SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\Primus Dental Implant Report Generator.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\Primus Implant Report Generator.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Primus Dental Implant Report Generator.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Primus Implant Report Generator.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
@@ -91,7 +91,7 @@ FunctionEnd
 Section Uninstall
   Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
-  Delete "$INSTDIR\Primus Dental Implant Report Generator.exe"
+  Delete "$INSTDIR\Primus Implant Report Generator.exe"
   Delete "$INSTDIR\icon.ico"
   Delete "$INSTDIR\icon.png"
   Delete "$INSTDIR\inosys_logo.png"

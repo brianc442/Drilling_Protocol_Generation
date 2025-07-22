@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Primus Dental Implant Report Generator 1.0.1',
+    name='Primus Implant Report Generator 1.0.1',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

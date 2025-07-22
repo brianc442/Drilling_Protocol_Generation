@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Primus Dental Implant Report Generator',
+    name='Primus Implant Report Generator',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -35,5 +35,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version='version_info.txt',
     icon=['icon.ico'],
 )

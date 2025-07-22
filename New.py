@@ -135,7 +135,7 @@ class PrimusImplantApp(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
 
-        self.title("Primus Dental Implant Report Generator")
+        self.title("Primus Implant Report Generator")
         self.geometry("1000x800")
 
         # Configure window colors
@@ -221,7 +221,7 @@ class PrimusImplantApp(ctk.CTk):
         # Title
         title_label: ctk.CTkLabel = ctk.CTkLabel(
             header_frame,
-            text="Primus Dental Implant Report Generator",
+            text="Primus Implant Report Generator",
             font=ctk.CTkFont(size=24, weight="bold"),
             text_color=INOSYS_COLORS["white"]
         )
