@@ -30,8 +30,13 @@ APP_BUILD_DATE = "2025-07-22"
 def get_user_app_directory() -> str:
     """Get user-specific application directory"""
     if sys.platform.startswith('win'):
-        app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~\\AppData\\Local'))
-        return os.path.join(app_data, 'Inosys', 'PrimusImplant')
+        # Always use the current user's AppData, regardless of elevation
+        username = os.environ.get('USERNAME')
+        if username:
+            return f"C:\\Users\\{username}\\AppData\\Local\\CreoDent\\PrimusImplant"
+        else:
+            app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~\\AppData\\Local'))
+            return os.path.join(app_data, 'CreoDent', 'PrimusImplant')
     else:
         return os.path.expanduser('~/.local/share/PrimusImplant')
 
