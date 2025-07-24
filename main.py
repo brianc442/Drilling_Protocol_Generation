@@ -1312,6 +1312,25 @@ class PrimusImplantApp(ctk.CTk):
         except Exception as e:
             print(f"Failed to write log: {e}")
 
+    def log_window_activity(self, message: str, level: str = "INFO") -> None:
+        """Log window memory activities for debugging"""
+        try:
+            user_dir = get_user_app_directory()
+            log_dir = os.path.join(user_dir, 'logs')
+            log_file = os.path.join(log_dir, 'window_memory.log')
+
+            os.makedirs(log_dir, exist_ok=True)
+
+            with open(log_file, 'a', encoding='utf-8') as f:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                f.write(f"[{timestamp}] [{level}] {message}\n")
+
+            # Also print to console for immediate feedback
+            print(f"[WINDOW_MEMORY] [{level}] {message}")
+
+        except Exception as e:
+            print(f"Failed to write window memory log: {e}")
+
     # Enhanced update check with better error handling
     def _user_update_check_worker(self, checking_dialog) -> None:
         """Enhanced user-level update check with logging"""
@@ -1922,6 +1941,25 @@ del "%~f0"
         if notes == placeholder_text or not notes:
             return ""
         return notes
+
+    def get_window_settings_file(self) -> str:
+        """Get the path to the window settings file"""
+        try:
+            user_dir = get_user_app_directory()
+            self.log_window_activity(f"User directory: {user_dir}")
+
+            # Ensure directory exists
+            os.makedirs(user_dir, exist_ok=True)
+            self.log_window_activity(f"Directory created/verified: {user_dir}")
+
+            settings_file = os.path.join(user_dir, 'window_settings.json')
+            self.log_window_activity(f"Settings file path: {settings_file}")
+
+            return settings_file
+
+        except Exception as e:
+            self.log_window_activity(f"Error getting settings file path: {e}", "ERROR")
+            return None
 
     def show_print_preview(self) -> None:
         """Generate and show print preview"""
@@ -2849,6 +2887,23 @@ del "%~f0"
             self.log_window_activity(f"Traceback: {traceback.format_exc()}", "ERROR")
             # Fallback to default
             self.geometry("900x950")
+
+    def apply_maximized_state(self) -> None:
+        """Apply maximized state with logging"""
+        try:
+            self.log_window_activity("Applying maximized state")
+            current_state = self.state()
+            self.log_window_activity(f"Current state before maximizing: {current_state}")
+
+            self.state('zoomed')
+
+            # Verify
+            self.update_idletasks()
+            new_state = self.state()
+            self.log_window_activity(f"State after maximizing: {new_state}")
+
+        except Exception as e:
+            self.log_window_activity(f"Error applying maximized state: {e}", "ERROR")
 
     def apply_maximized_state(self) -> None:
         """Apply maximized state with logging"""
