@@ -232,7 +232,13 @@ class PrimusImplantApp(ctk.CTk):
 
         self.title("Primus Implant Report Generator")
 
-        # Load window geometry AFTER title is set but BEFORE other setup
+        # Initialize logging first
+        self.log_window_activity("=== APPLICATION STARTUP ===")
+        self.log_window_activity(f"Python version: {sys.version}")
+        self.log_window_activity(f"Platform: {sys.platform}")
+        self.log_window_activity(f"App version: 1.0.4")
+
+        # Load window geometry AFTER title is set
         self.load_window_geometry()
 
         # Set up user installation first
@@ -252,7 +258,7 @@ class PrimusImplantApp(ctk.CTk):
         self.implant_plans = []
         self.current_case_notes = ""
 
-        # Load CSV data (now uses user directory)
+        # Load CSV data
         self.load_implant_data()
 
         self.create_widgets()
@@ -261,12 +267,10 @@ class PrimusImplantApp(ctk.CTk):
         # Bind window events
         self.protocol("WM_DELETE_WINDOW", self.on_window_close)
 
-        # Bind configure event to save geometry when window is resized/moved
-        self.bind('<Configure>', self.on_window_configure)
+        self.log_window_activity("=== APPLICATION STARTUP COMPLETE ===")
 
-        # Also bind to specific window manager events
-        self.bind('<Button-1>', self.on_window_interact)  # Click events
-        self.bind('<ButtonRelease-1>', self.on_window_interact)  # Release events
+        # Test window memory after a short delay
+        self.after(1000, self.test_window_memory)
 
     def ensure_user_directories(self) -> None:
         """Ensure user directories exist"""
@@ -2637,82 +2641,230 @@ del "%~f0"
         return False
 
     def save_window_geometry(self) -> None:
-        """Save window size and position"""
+        """Save window size and position with extensive logging"""
         try:
-            user_dir = get_user_app_directory()
-            settings_file = os.path.join(user_dir, 'window_settings.json')
+            self.log_window_activity("=== SAVING WINDOW GEOMETRY ===")
 
-            # Ensure directory exists
-            os.makedirs(user_dir, exist_ok=True)
+            # Get settings file path
+            settings_file = self.get_window_settings_file()
+            if not settings_file:
+                self.log_window_activity("Could not determine settings file path", "ERROR")
+                return
 
-            # Get current geometry - need to update first to get accurate values
+            # Update widget info to get accurate measurements
             self.update_idletasks()
+            self.log_window_activity("Updated idle tasks")
 
-            # Get current geometry
-            geometry = self.winfo_geometry()  # Returns "widthxheight+x+y"
+            # Get all window information
+            try:
+                geometry = self.winfo_geometry()
+                self.log_window_activity(f"Raw geometry string: {geometry}")
+            except Exception as e:
+                self.log_window_activity(f"Error getting geometry: {e}", "ERROR")
+                geometry = "900x950+100+100"
 
-            # Get window state
-            window_state = self.state()  # 'normal', 'zoomed', 'iconic', 'withdrawn'
+            try:
+                width = self.winfo_width()
+                height = self.winfo_height()
+                x = self.winfo_x()
+                y = self.winfo_y()
+                self.log_window_activity(f"Individual values - Width: {width}, Height: {height}, X: {x}, Y: {y}")
+            except Exception as e:
+                self.log_window_activity(f"Error getting individual geometry values: {e}", "ERROR")
+                width, height, x, y = 900, 950, 100, 100
 
+            try:
+                window_state = self.state()
+                self.log_window_activity(f"Window state: {window_state}")
+            except Exception as e:
+                self.log_window_activity(f"Error getting window state: {e}", "ERROR")
+                window_state = "normal"
+
+            # Validate values
+            if width < 300:
+                self.log_window_activity(f"Width too small ({width}), using default", "WARN")
+                width = 900
+            if height < 200:
+                self.log_window_activity(f"Height too small ({height}), using default", "WARN")
+                height = 950
+
+            # Create settings dictionary
             settings = {
                 'geometry': geometry,
+                'width': width,
+                'height': height,
+                'x': x,
+                'y': y,
                 'maximized': window_state == 'zoomed',
-                'width': self.winfo_width(),
-                'height': self.winfo_height(),
-                'x': self.winfo_x(),
-                'y': self.winfo_y()
+                'state': window_state,
+                'saved_at': datetime.now().isoformat(),
+                'version': '1.0.4'
             }
 
-            with open(settings_file, 'w') as f:
-                json.dump(settings, f, indent=2)
+            self.log_window_activity(f"Settings to save: {settings}")
 
-            print(f"Window geometry saved: {geometry}, State: {window_state}")
+            # Write to file
+            try:
+                # First, try to read existing file to see if we can write
+                if os.path.exists(settings_file):
+                    with open(settings_file, 'r') as f:
+                        old_settings = json.load(f)
+                    self.log_window_activity(f"Previous settings: {old_settings}")
+
+                # Write new settings
+                with open(settings_file, 'w') as f:
+                    json.dump(settings, f, indent=2)
+
+                self.log_window_activity(f"Settings saved successfully to: {settings_file}")
+
+                # Verify the file was written correctly
+                with open(settings_file, 'r') as f:
+                    verification = json.load(f)
+                self.log_window_activity(f"Verification read: {verification}")
+
+            except Exception as e:
+                self.log_window_activity(f"Error writing settings file: {e}", "ERROR")
+
+            self.log_window_activity("=== SAVE COMPLETE ===")
 
         except Exception as e:
-            print(f"Error saving window geometry: {e}")
+            self.log_window_activity(f"Unexpected error in save_window_geometry: {e}", "ERROR")
+            import traceback
+            self.log_window_activity(f"Traceback: {traceback.format_exc()}", "ERROR")
 
     def load_window_geometry(self) -> None:
-        """Load and apply saved window size and position"""
+        """Load and apply saved window size and position with extensive logging"""
         try:
-            user_dir = get_user_app_directory()
-            settings_file = os.path.join(user_dir, 'window_settings.json')
+            self.log_window_activity("=== LOADING WINDOW GEOMETRY ===")
 
-            if os.path.exists(settings_file):
+            # Get settings file path
+            settings_file = self.get_window_settings_file()
+            if not settings_file:
+                self.log_window_activity("Could not determine settings file path, using defaults", "WARN")
+                self.geometry("900x950")
+                return
+
+            # Check if settings file exists
+            if not os.path.exists(settings_file):
+                self.log_window_activity(f"Settings file does not exist: {settings_file}")
+                self.log_window_activity("Using default geometry: 900x950")
+                self.geometry("900x950")
+                return
+
+            self.log_window_activity(f"Loading settings from: {settings_file}")
+
+            # Read settings file
+            try:
                 with open(settings_file, 'r') as f:
                     settings = json.load(f)
+                self.log_window_activity(f"Settings loaded: {settings}")
+            except Exception as e:
+                self.log_window_activity(f"Error reading settings file: {e}", "ERROR")
+                self.geometry("900x950")
+                return
 
-                print(f"Loading window settings: {settings}")
+            # Validate settings
+            if not isinstance(settings, dict):
+                self.log_window_activity("Settings is not a dictionary, using defaults", "ERROR")
+                self.geometry("900x950")
+                return
 
-                # Method 1: Try using the saved geometry string
-                if 'geometry' in settings and settings['geometry']:
-                    try:
-                        self.geometry(settings['geometry'])
-                        print(f"Applied geometry: {settings['geometry']}")
-                    except Exception as e:
-                        print(f"Failed to apply geometry string: {e}")
-                        # Fallback to individual values
-                        self.apply_individual_geometry(settings)
-                else:
-                    # Method 2: Use individual width/height/x/y values
-                    self.apply_individual_geometry(settings)
+            # Try different methods to apply geometry
+            geometry_applied = False
 
-                # Apply maximized state after geometry is set
-                if settings.get('maximized', False):
-                    # Need to wait a moment for geometry to be applied
-                    self.after(100, lambda: self.state('zoomed'))
-                    print("Window will be maximized")
-                else:
-                    print("Window will be normal size")
+            # Method 1: Use geometry string
+            if 'geometry' in settings and settings['geometry']:
+                try:
+                    geometry_str = settings['geometry']
+                    self.log_window_activity(f"Attempting to apply geometry string: {geometry_str}")
+                    self.geometry(geometry_str)
 
-            else:
-                print("No window settings file found, using defaults")
+                    # Verify it was applied
+                    self.update_idletasks()
+                    current_geometry = self.winfo_geometry()
+                    self.log_window_activity(f"Geometry applied, current: {current_geometry}")
+                    geometry_applied = True
+
+                except Exception as e:
+                    self.log_window_activity(f"Failed to apply geometry string: {e}", "ERROR")
+
+            # Method 2: Use individual values
+            if not geometry_applied:
+                try:
+                    width = settings.get('width', 900)
+                    height = settings.get('height', 950)
+                    x = settings.get('x', 100)
+                    y = settings.get('y', 100)
+
+                    self.log_window_activity(f"Attempting individual geometry - W:{width} H:{height} X:{x} Y:{y}")
+
+                    # Validate individual values
+                    if width < 300 or width > 5000:
+                        self.log_window_activity(f"Invalid width {width}, using 900", "WARN")
+                        width = 900
+                    if height < 200 or height > 3000:
+                        self.log_window_activity(f"Invalid height {height}, using 950", "WARN")
+                        height = 950
+                    if x < -1000 or x > 5000:
+                        self.log_window_activity(f"Invalid x position {x}, using 100", "WARN")
+                        x = 100
+                    if y < -100 or y > 3000:
+                        self.log_window_activity(f"Invalid y position {y}, using 100", "WARN")
+                        y = 100
+
+                    geometry_str = f"{width}x{height}+{x}+{y}"
+                    self.log_window_activity(f"Constructed geometry string: {geometry_str}")
+                    self.geometry(geometry_str)
+
+                    # Verify
+                    self.update_idletasks()
+                    current_geometry = self.winfo_geometry()
+                    self.log_window_activity(f"Individual geometry applied, current: {current_geometry}")
+                    geometry_applied = True
+
+                except Exception as e:
+                    self.log_window_activity(f"Failed to apply individual geometry: {e}", "ERROR")
+
+            # Method 3: Fallback to defaults
+            if not geometry_applied:
+                self.log_window_activity("All geometry methods failed, using defaults", "WARN")
                 self.geometry("900x950")
 
+            # Handle maximized state
+            try:
+                if settings.get('maximized', False):
+                    self.log_window_activity("Window should be maximized")
+                    # Use after() to ensure geometry is applied first
+                    self.after(200, lambda: self.apply_maximized_state())
+                else:
+                    self.log_window_activity("Window should be normal size")
+            except Exception as e:
+                self.log_window_activity(f"Error handling maximized state: {e}", "ERROR")
+
+            self.log_window_activity("=== LOAD COMPLETE ===")
+
         except Exception as e:
-            print(f"Error loading window geometry: {e}")
-            # Fall back to default
+            self.log_window_activity(f"Unexpected error in load_window_geometry: {e}", "ERROR")
+            import traceback
+            self.log_window_activity(f"Traceback: {traceback.format_exc()}", "ERROR")
+            # Fallback to default
             self.geometry("900x950")
 
+    def apply_maximized_state(self) -> None:
+        """Apply maximized state with logging"""
+        try:
+            self.log_window_activity("Applying maximized state")
+            current_state = self.state()
+            self.log_window_activity(f"Current state before maximizing: {current_state}")
+
+            self.state('zoomed')
+
+            # Verify
+            self.update_idletasks()
+            new_state = self.state()
+            self.log_window_activity(f"State after maximizing: {new_state}")
+        except Exception as e:
+            self.log_window_activity(f"Error applying maximized state: {e}", "ERROR")
     def apply_individual_geometry(self, settings: dict) -> None:
         """Apply geometry using individual width/height/x/y values"""
         try:
@@ -2740,10 +2892,130 @@ del "%~f0"
             self.geometry("900x950")
 
     def on_window_close(self) -> None:
-        """Handle window close event"""
-        print("Window closing, saving geometry...")
-        self.save_window_geometry()
-        self.quit()
+        """Handle window close event with logging"""
+        self.log_window_activity("=== WINDOW CLOSING ===")
+        try:
+            self.save_window_geometry()
+            self.log_window_activity("Window geometry saved on close")
+        except Exception as e:
+            self.log_window_activity(f"Error saving geometry on close: {e}", "ERROR")
+
+        try:
+            self.quit()
+        except Exception as e:
+            self.log_window_activity(f"Error during quit: {e}", "ERROR")
+
+    def test_window_memory(self) -> None:
+        """Test function to verify window memory is working"""
+        try:
+            self.log_window_activity("=== TESTING WINDOW MEMORY ===")
+
+            # Test save
+            self.log_window_activity("Testing save...")
+            self.save_window_geometry()
+
+            # Test load
+            self.log_window_activity("Testing load...")
+            settings_file = self.get_window_settings_file()
+
+            if os.path.exists(settings_file):
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                self.log_window_activity(f"Test read successful: {settings}")
+            else:
+                self.log_window_activity("Test failed: settings file not found", "ERROR")
+
+            self.log_window_activity("=== TEST COMPLETE ===")
+
+        except Exception as e:
+            self.log_window_activity(f"Test failed: {e}", "ERROR")
+
+    def open_window_log(self) -> None:
+        """Open the window memory log file"""
+        try:
+            user_dir = get_user_app_directory()
+            log_file = os.path.join(user_dir, 'logs', 'window_memory.log')
+
+            if os.path.exists(log_file):
+                if sys.platform.startswith('win'):
+                    os.startfile(log_file)
+                else:
+                    subprocess.run(['open', log_file])
+            else:
+                messagebox.showinfo("Log File", f"Log file not found at:\n{log_file}")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not open log file: {e}")
+
+    # Update your create_menu method to include the test option
+    def create_menu(self) -> None:
+        """Create the application menu bar"""
+        # Create menu bar
+        menubar = tk.Menu(self)
+        self.config(menu=menubar)
+
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        help_menu.add_command(label="About", command=self.show_about_dialog)
+        help_menu.add_separator()
+        help_menu.add_command(label="Check for Updates", command=self.check_for_updates)
+        help_menu.add_separator()
+        help_menu.add_command(label="Test Window Memory", command=self.show_window_memory_test)
+
+    def show_window_memory_test(self) -> None:
+        """Show window memory test dialog"""
+        test_dialog = ctk.CTkToplevel(self)
+        test_dialog.title("Window Memory Test")
+        test_dialog.geometry("400x300")
+        test_dialog.configure(fg_color=INOSYS_COLORS["background_primary"])
+
+        # Center the dialog
+        test_dialog.transient(self)
+        test_dialog.grab_set()
+
+        # Main frame
+        main_frame = ctk.CTkFrame(test_dialog, fg_color=INOSYS_COLORS["background_secondary"])
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Title
+        title_label = ctk.CTkLabel(
+            main_frame,
+            text="Window Memory Test",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=INOSYS_COLORS["light_blue"]
+        )
+        title_label.pack(pady=10)
+
+        # Test button
+        test_button = ctk.CTkButton(
+            main_frame,
+            text="Run Test",
+            command=self.test_window_memory,
+            fg_color=INOSYS_COLORS["medium_blue"],
+            hover_color=INOSYS_COLORS["light_blue"]
+        )
+        test_button.pack(pady=10)
+
+        # Show log button
+        log_button = ctk.CTkButton(
+            main_frame,
+            text="Show Log File",
+            command=self.open_window_log,
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"]
+        )
+        log_button.pack(pady=5)
+
+        # Close button
+        close_button = ctk.CTkButton(
+            main_frame,
+            text="Close",
+            command=test_dialog.destroy,
+            fg_color=INOSYS_COLORS["dark_blue"],
+            hover_color=INOSYS_COLORS["medium_blue"]
+        )
+        close_button.pack(pady=10)
 
     # Also add this method to handle window resize/move events
     def on_window_configure(self, event=None) -> None:
