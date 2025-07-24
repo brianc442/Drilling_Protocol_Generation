@@ -30,13 +30,18 @@ APP_BUILD_DATE = "2025-07-22"
 def get_user_app_directory() -> str:
     """Get user-specific application directory"""
     if sys.platform.startswith('win'):
-        # Always use the current user's AppData, regardless of elevation
-        username = os.environ.get('USERNAME')
-        if username:
-            return f"C:\\Users\\{username}\\AppData\\Local\\CreoDent\\PrimusImplant"
-        else:
-            app_data = os.environ.get('LOCALAPPDATA', os.path.expanduser('~\\AppData\\Local'))
+        # Method 1: Use LOCALAPPDATA (most reliable)
+        app_data = os.environ.get('LOCALAPPDATA')
+        if app_data:
             return os.path.join(app_data, 'CreoDent', 'PrimusImplant')
+
+        # Method 2: Use USERPROFILE (fallback)
+        user_profile = os.environ.get('USERPROFILE')
+        if user_profile:
+            return os.path.join(user_profile, 'AppData', 'Local', 'CreoDent', 'PrimusImplant')
+
+        # Method 3: Use expanduser (final fallback)
+        return os.path.join(os.path.expanduser('~'), 'AppData', 'Local', 'CreoDent', 'PrimusImplant')
     else:
         return os.path.expanduser('~/.local/share/PrimusImplant')
 
@@ -1947,6 +1952,11 @@ del "%~f0"
         try:
             user_dir = get_user_app_directory()
             self.log_window_activity(f"User directory: {user_dir}")
+
+            # Debug: Show environment variables
+            self.log_window_activity(f"USERNAME: {os.environ.get('USERNAME', 'NOT_SET')}")
+            self.log_window_activity(f"USERPROFILE: {os.environ.get('USERPROFILE', 'NOT_SET')}")
+            self.log_window_activity(f"LOCALAPPDATA: {os.environ.get('LOCALAPPDATA', 'NOT_SET')}")
 
             # Ensure directory exists
             os.makedirs(user_dir, exist_ok=True)
