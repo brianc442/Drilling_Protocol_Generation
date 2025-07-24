@@ -43,12 +43,22 @@ def get_user_app_directory() -> str:
 
 def get_user_update_server_path() -> str:
     """Get user-level update server path"""
-    # You can change this to a network location accessible to users
-    # or use a web-based update system
-    return os.path.join(get_user_app_directory(), 'updates')
+    # Primary: Network share for updates
+    network_path = r"\\CDIMANQ30\Creoman-Active\CADCAM\Software\Primus Implant Report Generator\UserUpdates"
+
+    # Fallback: Local shared folder
+    local_path = r"C:\Shared\PrimusUpdates"
+
+    # Check which path is accessible
+    if os.path.exists(network_path):
+        return network_path
+    elif os.path.exists(local_path):
+        return local_path
+    else:
+        # Final fallback: User directory updates subfolder
+        return os.path.join(get_user_app_directory(), 'updates')
 
 
-# Replace the old UPDATE_SERVER_PATH
 UPDATE_SERVER_PATH = get_user_update_server_path()
 UPDATE_FILENAME = "Primus Implant Report Generator.exe"
 
@@ -222,7 +232,7 @@ class PrimusImplantApp(ctk.CTk):
 
         self.title("Primus Implant Report Generator")
 
-        # Load window geometry before setting default
+        # Load window geometry AFTER title is set but BEFORE other setup
         self.load_window_geometry()
 
         # Set up user installation first
@@ -248,8 +258,15 @@ class PrimusImplantApp(ctk.CTk):
         self.create_widgets()
         self.create_menu()
 
-        # Bind window close event
+        # Bind window events
         self.protocol("WM_DELETE_WINDOW", self.on_window_close)
+
+        # Bind configure event to save geometry when window is resized/moved
+        self.bind('<Configure>', self.on_window_configure)
+
+        # Also bind to specific window manager events
+        self.bind('<Button-1>', self.on_window_interact)  # Click events
+        self.bind('<ButtonRelease-1>', self.on_window_interact)  # Release events
 
     def ensure_user_directories(self) -> None:
         """Ensure user directories exist"""
@@ -1145,6 +1162,54 @@ class PrimusImplantApp(ctk.CTk):
             'filename': UPDATE_FILENAME,
             'version_file': 'version.txt'
         }
+
+    def get_update_info(self) -> dict:
+        """Get comprehensive update information"""
+        try:
+            update_manifest_path = os.path.join(UPDATE_SERVER_PATH, 'update_manifest.json')
+
+            if os.path.exists(update_manifest_path):
+                with open(update_manifest_path, 'r') as f:
+                    return json.load(f)
+            else:
+                # Fallback to basic file checking
+                update_exe_path = os.path.join(UPDATE_SERVER_PATH, UPDATE_FILENAME)
+                if os.path.exists(update_exe_path):
+                    stat_info = os.stat(update_exe_path)
+                    return {
+                        "version": "Unknown",
+                        "build_date": datetime.fromtimestamp(stat_info.st_mtime).isoformat(),
+                        "executable": UPDATE_FILENAME,
+                        "size": stat_info.st_size
+                    }
+
+            return None
+        except Exception as e:
+            print(f"Error getting update info: {e}")
+            return None
+
+    def check_update_server_access(self) -> bool:
+        """Enhanced update server access check"""
+        try:
+            # Check if primary network path exists
+            network_path = r"\\CDIMANQ30\Creoman-Active\CADCAM\Software\Primus Implant Report Generator\UserUpdates"
+            if os.path.exists(network_path):
+                self.log_update_activity(f"Network update server accessible: {network_path}")
+                return True
+
+            # Check fallback local path
+            local_path = r"C:\Shared\PrimusUpdates"
+            if os.path.exists(local_path):
+                self.log_update_activity(f"Local update server accessible: {local_path}")
+                return True
+
+            # No update server accessible
+            self.log_update_activity("No update servers accessible")
+            return False
+
+        except Exception as e:
+            self.log_update_activity(f"Error checking update server access: {e}")
+            return False
 
     def check_update_server_access(self) -> bool:
         """Check if we can access the update server"""
@@ -2577,17 +2642,31 @@ del "%~f0"
             user_dir = get_user_app_directory()
             settings_file = os.path.join(user_dir, 'window_settings.json')
 
+            # Ensure directory exists
+            os.makedirs(user_dir, exist_ok=True)
+
+            # Get current geometry - need to update first to get accurate values
+            self.update_idletasks()
+
             # Get current geometry
             geometry = self.winfo_geometry()  # Returns "widthxheight+x+y"
 
+            # Get window state
+            window_state = self.state()  # 'normal', 'zoomed', 'iconic', 'withdrawn'
+
             settings = {
                 'geometry': geometry,
-                'maximized': self.state() == 'zoomed'
+                'maximized': window_state == 'zoomed',
+                'width': self.winfo_width(),
+                'height': self.winfo_height(),
+                'x': self.winfo_x(),
+                'y': self.winfo_y()
             }
 
-            os.makedirs(user_dir, exist_ok=True)
             with open(settings_file, 'w') as f:
-                json.dump(settings, f)
+                json.dump(settings, f, indent=2)
+
+            print(f"Window geometry saved: {geometry}, State: {window_state}")
 
         except Exception as e:
             print(f"Error saving window geometry: {e}")
@@ -2602,23 +2681,89 @@ del "%~f0"
                 with open(settings_file, 'r') as f:
                     settings = json.load(f)
 
-                # Apply geometry
-                if 'geometry' in settings:
-                    self.geometry(settings['geometry'])
+                print(f"Loading window settings: {settings}")
 
-                # Apply maximized state
+                # Method 1: Try using the saved geometry string
+                if 'geometry' in settings and settings['geometry']:
+                    try:
+                        self.geometry(settings['geometry'])
+                        print(f"Applied geometry: {settings['geometry']}")
+                    except Exception as e:
+                        print(f"Failed to apply geometry string: {e}")
+                        # Fallback to individual values
+                        self.apply_individual_geometry(settings)
+                else:
+                    # Method 2: Use individual width/height/x/y values
+                    self.apply_individual_geometry(settings)
+
+                # Apply maximized state after geometry is set
                 if settings.get('maximized', False):
-                    self.state('zoomed')
+                    # Need to wait a moment for geometry to be applied
+                    self.after(100, lambda: self.state('zoomed'))
+                    print("Window will be maximized")
+                else:
+                    print("Window will be normal size")
+
+            else:
+                print("No window settings file found, using defaults")
+                self.geometry("900x950")
 
         except Exception as e:
             print(f"Error loading window geometry: {e}")
             # Fall back to default
             self.geometry("900x950")
 
+    def apply_individual_geometry(self, settings: dict) -> None:
+        """Apply geometry using individual width/height/x/y values"""
+        try:
+            width = settings.get('width', 900)
+            height = settings.get('height', 950)
+            x = settings.get('x', 100)
+            y = settings.get('y', 100)
+
+            # Validate values are reasonable
+            if width < 400 or width > 3840:  # Min 400px, max 4K width
+                width = 900
+            if height < 300 or height > 2160:  # Min 300px, max 4K height
+                height = 950
+            if x < -100 or x > 2560:  # Reasonable screen positions
+                x = 100
+            if y < -100 or y > 1440:
+                y = 100
+
+            geometry_string = f"{width}x{height}+{x}+{y}"
+            self.geometry(geometry_string)
+            print(f"Applied individual geometry: {geometry_string}")
+
+        except Exception as e:
+            print(f"Error applying individual geometry: {e}")
+            self.geometry("900x950")
+
     def on_window_close(self) -> None:
         """Handle window close event"""
+        print("Window closing, saving geometry...")
         self.save_window_geometry()
         self.quit()
+
+    # Also add this method to handle window resize/move events
+    def on_window_configure(self, event=None) -> None:
+        """Handle window configure events (resize/move)"""
+        # Only save if the event is for the main window (not child widgets)
+        if event and event.widget == self:
+            # Debounce - only save after user stops resizing/moving
+            if hasattr(self, '_configure_timer'):
+                self.after_cancel(self._configure_timer)
+
+            # Save geometry after 1 second of no changes
+            self._configure_timer = self.after(1000, self.save_window_geometry)
+
+    def on_window_interact(self, event=None) -> None:
+        """Handle window interaction events"""
+        # Save geometry after user interaction (debounced)
+        if hasattr(self, '_interact_timer'):
+            self.after_cancel(self._interact_timer)
+
+        self._interact_timer = self.after(2000, self.save_window_geometry)
 
     def save_case_notes(self, notes: str) -> None:
         """Save case notes to current plan"""

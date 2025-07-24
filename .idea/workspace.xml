@@ -4,54 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b1ec59c0-16b0-4b41-bf78-77926854a3f3" name="Changes" comment="Build 1.0.3&#10;Improved report column sizes, added approach instructions, added enter key bindings">
-      <change afterPath="$PROJECT_DIR$/Primus Dental Implant Report Generator 1.0.3.spec" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Primus Implant Report Generator 1.0.3.spec" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Primus_Installer_v1.0.2.exe" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/build_user_installer.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/deploy_update.bat" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/packenv/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="b1ec59c0-16b0-4b41-bf78-77926854a3f3" name="Changes" comment="Build 1.0.4&#10;added post_install_setup.bat">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/InstallForge project.ifp" beforeDir="false" afterPath="$PROJECT_DIR$/InstallForge project.ifp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/New.py" beforeDir="false" afterPath="$PROJECT_DIR$/New.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Primus Dental Implant Report Generator 1.0.1.spec" beforeDir="false" afterPath="$PROJECT_DIR$/Primus Dental Implant Report Generator 1.0.1.spec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Primus Dental Implant Report Generator 1.0.2.spec" beforeDir="false" afterPath="$PROJECT_DIR$/Primus Dental Implant Report Generator 1.0.2.spec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Primus Dental Implant Report Generator.spec" beforeDir="false" afterPath="$PROJECT_DIR$/Primus Dental Implant Report Generator.spec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Primus_Installer_v1.0.0.exe" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Analysis-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/EXE-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PKG-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PYZ-00.pyz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/PYZ-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Primus Dental Implant Report Generator 1.0.1.pkg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Tree-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Tree-01.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/Tree-02.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/base_library.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/warn-Primus Dental Implant Report Generator 1.0.1.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator 1.0.1/xref-Primus Dental Implant Report Generator 1.0.1.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/Analysis-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/Analysis-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/EXE-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/EXE-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/PKG-00.toc" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/PKG-00.toc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/PYZ-00.pyz" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/PYZ-00.pyz" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/Primus Dental Implant Report Generator.pkg" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/Primus Dental Implant Report Generator.pkg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/warn-Primus Dental Implant Report Generator.txt" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/warn-Primus Dental Implant Report Generator.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/xref-Primus Dental Implant Report Generator.html" beforeDir="false" afterPath="$PROJECT_DIR$/build/Primus Dental Implant Report Generator/xref-Primus Dental Implant Report Generator.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/main/EXE-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/main/PKG-00.toc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build/main/base_library.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/build_installer.bat" beforeDir="false" afterPath="$PROJECT_DIR$/build_installer.bat" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator 1.0.1.exe" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/Primus Dental Implant Report Generator.exe" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/Primus Implant List - Primus Implant List.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/icon.ico" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/inosys_logo.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/dist/main.exe" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/installer.nsi" beforeDir="false" afterPath="$PROJECT_DIR$/installer.nsi" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy_update.bat" beforeDir="false" afterPath="$PROJECT_DIR$/deploy_update.bat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/primus_installer.spec" beforeDir="false" afterPath="$PROJECT_DIR$/primus_installer.spec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/version_info.txt" beforeDir="false" afterPath="$PROJECT_DIR$/version_info.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,6 +37,9 @@
     &quot;accountId&quot;: &quot;45e695f0-92ab-41b9-a23f-e751f687eb5c&quot;
   }
 }</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/main.py" root0="SKIP_INSPECTION" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
 }</component>
@@ -315,7 +275,39 @@
       <option name="project" value="LOCAL" />
       <updated>1752770339144</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Build 1.0.4&#10;Case Notes: Integrates seamlessly into existing PDF generation&#10;Print Preview: Uses temporary files, auto-cleanup&#10;Window Memory: Non-intrusive, saves/loads automatically&#10;Error Handling: Graceful fallbacks if features fail">
+      <option name="closed" value="true" />
+      <created>1753201595433</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1753201595433</updated>
+    </task>
+    <task id="LOCAL-00024" summary="Build 1.0.4&#10;bug fix">
+      <option name="closed" value="true" />
+      <created>1753202432557</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1753202432557</updated>
+    </task>
+    <task id="LOCAL-00025" summary="Build 1.0.4&#10;clarified button labels">
+      <option name="closed" value="true" />
+      <created>1753203112714</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1753203112714</updated>
+    </task>
+    <task id="LOCAL-00026" summary="Build 1.0.4&#10;added post_install_setup.bat">
+      <option name="closed" value="true" />
+      <created>1753209181814</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1753209181814</updated>
+    </task>
+    <option name="localTasksCounter" value="27" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -351,6 +343,10 @@
     <MESSAGE value="Build 1.0.2&#10;Changed update path, added flap vs flapless radio buttons, enhanced report" />
     <MESSAGE value="Build 1.0.2&#10;Changed update path, added flap vs flapless radio buttons, enhanced report, resized window" />
     <MESSAGE value="Build 1.0.3&#10;Improved report column sizes, added approach instructions, added enter key bindings" />
-    <option name="LAST_COMMIT_MESSAGE" value="Build 1.0.3&#10;Improved report column sizes, added approach instructions, added enter key bindings" />
+    <MESSAGE value="Build 1.0.4&#10;Case Notes: Integrates seamlessly into existing PDF generation&#10;Print Preview: Uses temporary files, auto-cleanup&#10;Window Memory: Non-intrusive, saves/loads automatically&#10;Error Handling: Graceful fallbacks if features fail" />
+    <MESSAGE value="Build 1.0.4&#10;bug fix" />
+    <MESSAGE value="Build 1.0.4&#10;clarified button labels" />
+    <MESSAGE value="Build 1.0.4&#10;added post_install_setup.bat" />
+    <option name="LAST_COMMIT_MESSAGE" value="Build 1.0.4&#10;added post_install_setup.bat" />
   </component>
 </project>
