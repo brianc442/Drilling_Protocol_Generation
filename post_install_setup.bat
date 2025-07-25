@@ -1,84 +1,161 @@
 @echo off
-REM post_install_setup.bat - Robust user directory setup
+setlocal enabledelayedexpansion
+REM post_install_setup.bat - Install for actual user when running as admin
 echo Setting up Primus Implant Report Generator...
 
-REM Method 1: Try to get the user who initiated the installation
 set "TARGET_USER="
+set "USER_FOUND=0"
 
-REM Check if we're running under a specific user context
+echo Detecting actual logged-in user...
+
+REM Method 1: Check environment for original user (if set by installer)
 if defined ORIGINAL_USER (
     set "TARGET_USER=%ORIGINAL_USER%"
-    echo Found original user from environment: %TARGET_USER%
-    goto :SetupUser
+    set "USER_FOUND=1"
+    echo Found original user from environment: %ORIGINAL_USER%
+    goto :CheckUser
 )
 
-REM Method 2: Use the user profile environment variable
-if defined USERPROFILE (
-    for %%F in ("%USERPROFILE%") do set "TARGET_USER=%%~nxF"
-    echo Found user from USERPROFILE: %TARGET_USER%
-    goto :SetupUser
+REM Method 3: Check for users with explorer.exe running
+echo Checking for active explorer processes...
+for /f "skip=1 tokens=1,2" %%a in ('wmic process where "name='explorer.exe'" get ProcessId^,GetOwner /format:csv 2^>nul') do (
+    if not "%%b"=="" (
+        for /f "tokens=2 delims=\" %%c in ("%%b") do (
+            set "TEMP_USER=%%c"
+            if not "!TEMP_USER!"=="" if not "!TEMP_USER!"=="SYSTEM" (
+                if exist "C:\Users\!TEMP_USER!" (
+                    set "TARGET_USER=!TEMP_USER!"
+                    set "USER_FOUND=1"
+                    echo Found user from explorer process: !TEMP_USER!
+                    goto :CheckUser
+                )
+            )
+        )
+    )
 )
 
-REM Method 3: Try whoami command (most reliable)
-for /f "tokens=2 delims=\" %%i in ('whoami 2^>nul') do (
-    set "TARGET_USER=%%i"
-    echo Found user from whoami: %TARGET_USER%
-    goto :SetupUser
+REM Method 4: Find the most recently modified user profile (excluding system accounts)
+echo Checking for most recently used profile...
+set "NEWEST_TIME="
+set "NEWEST_USER="
+for /d %%a in (C:\Users\*) do (
+    set "USERNAME=%%~nxa"
+    if not "!USERNAME!"=="All Users" if not "!USERNAME!"=="Default" if not "!USERNAME!"=="Default User" if not "!USERNAME!"=="Public" (
+        if exist "%%a\NTUSER.DAT" (
+            for %%b in ("%%a\AppData\Local") do (
+                if exist "%%b" (
+                    set "PROFILE_TIME=%%~tb"
+                    if "!NEWEST_TIME!"=="" set "NEWEST_TIME=!PROFILE_TIME!"
+                    if "!PROFILE_TIME!" gtr "!NEWEST_TIME!" (
+                        set "NEWEST_TIME=!PROFILE_TIME!"
+                        set "NEWEST_USER=!USERNAME!"
+                    )
+                )
+            )
+        )
+    )
+)
+if not "!NEWEST_USER!"=="" (
+    set "TARGET_USER=!NEWEST_USER!"
+    set "USER_FOUND=1"
+    echo Found most recently used profile: !NEWEST_USER!
+    goto :CheckUser
 )
 
-REM Method 4: Try query user command (fallback)
-for /f "skip=1 tokens=1" %%i in ('query user 2^>nul ^| findstr /i "Active"') do (
-    set "TARGET_USER=%%i"
-    echo Found user from query user: %TARGET_USER%
-    goto :SetupUser
+REM Method 5: If all else fails, show available users and let user choose
+:PromptUser
+echo.
+echo Could not automatically detect the target user.
+echo Available users on this system:
+set "USER_COUNT=0"
+for /d %%a in (C:\Users\*) do (
+    set "USERNAME=%%~nxa"
+    if not "!USERNAME!"=="All Users" if not "!USERNAME!"=="Default" if not "!USERNAME!"=="Default User" if not "!USERNAME!"=="Public" (
+        if exist "%%a\NTUSER.DAT" (
+            set /a USER_COUNT+=1
+            echo   !USER_COUNT!. !USERNAME!
+            set "USER_!USER_COUNT!=!USERNAME!"
+        )
+    )
 )
 
-REM Method 5: Use current logged-in user from environment
-if defined USERNAME (
-    set "TARGET_USER=%USERNAME%"
-    echo Using USERNAME environment variable: %TARGET_USER%
-    goto :SetupUser
+if %USER_COUNT%==0 (
+    echo No valid user profiles found!
+    goto :ErrorEnd
 )
 
-REM If all methods fail, use a generic approach
-echo Warning: Could not determine specific user, using current context
-goto :SetupGeneric
-
-:SetupUser
-echo Setting up for user: %TARGET_USER%
-
-REM Use LOCALAPPDATA if available, otherwise construct path
-if defined LOCALAPPDATA (
-    set "USER_DATA_DIR=%LOCALAPPDATA%\CreoDent\PrimusImplant"
-) else (
-    set "USER_DATA_DIR=C:\Users\%TARGET_USER%\AppData\Local\CreoDent\PrimusImplant"
+if %USER_COUNT%==1 (
+    set "TARGET_USER=!USER_1!"
+    set "USER_FOUND=1"
+    echo Only one user found, selecting: !USER_1!
+    goto :CheckUser
 )
 
-REM Verify the user directory exists
-if not exist "C:\Users\%TARGET_USER%" (
-    echo Warning: User directory C:\Users\%TARGET_USER% does not exist
-    echo Falling back to generic setup
-    goto :SetupGeneric
+echo.
+echo Please select the user for whom to install this application:
+echo Enter the number (1-!USER_COUNT!) or type the username directly:
+set /p "USER_CHOICE=Your choice: "
+
+REM Check if it's a number
+echo !USER_CHOICE! | findstr /r "^[1-9][0-9]*$" >nul
+if %errorlevel%==0 (
+    if !USER_CHOICE! gtr 0 if !USER_CHOICE! leq !USER_COUNT! (
+        call set "TARGET_USER=%%USER_!USER_CHOICE!%%"
+        set "USER_FOUND=1"
+        echo Selected user by number: !TARGET_USER!
+        goto :CheckUser
+    )
 )
 
+REM Treat as direct username input
+set "TARGET_USER=!USER_CHOICE!"
+set "USER_FOUND=1"
+echo Entered username: !TARGET_USER!
+
+:CheckUser
+if "%USER_FOUND%"=="0" (
+    echo Error: Could not determine target user for installation.
+    goto :ErrorEnd
+)
+
+echo.
+echo Target user: %TARGET_USER%
+
+REM Validate that the user directory exists
+set "USER_HOME_DIR=C:\Users\%TARGET_USER%"
+if not exist "%USER_HOME_DIR%" (
+    echo Error: User directory %USER_HOME_DIR% does not exist.
+    echo Please verify the username is correct.
+    echo.
+    goto :PromptUser
+)
+
+echo Validated user directory: %USER_HOME_DIR%
+
+REM Confirm with user before proceeding
+echo.
+echo About to install Primus Implant Report Generator for user: %TARGET_USER%
+echo Installation directory: %USER_HOME_DIR%\AppData\Local\CreoDent\PrimusImplant
+echo.
+set /p "CONFIRM=Is this correct? (Y/N): "
+if /i not "%CONFIRM%"=="Y" (
+    echo Installation cancelled by user.
+    goto :End
+)
+
+REM Set up paths for the target user
+set "USER_DATA_DIR=%USER_HOME_DIR%\AppData\Local\CreoDent\PrimusImplant"
+set "USER_DESKTOP=%USER_HOME_DIR%\Desktop"
+set "USER_APPDATA=%USER_HOME_DIR%\AppData\Roaming"
+set "USER_START_MENU=%USER_APPDATA%\Microsoft\Windows\Start Menu\Programs\CreoDent"
+
+echo.
 echo Target directory: %USER_DATA_DIR%
-goto :CreateDirectories
-
-:SetupGeneric
-echo Using generic setup approach...
-
-REM Use LOCALAPPDATA or APPDATA as fallback
-if defined LOCALAPPDATA (
-    set "USER_DATA_DIR=%LOCALAPPDATA%\CreoDent\PrimusImplant"
-) else if defined APPDATA (
-    set "USER_DATA_DIR=%APPDATA%\..\Local\CreoDent\PrimusImplant"
-) else (
-    set "USER_DATA_DIR=%USERPROFILE%\AppData\Local\CreoDent\PrimusImplant"
-)
-
-echo Generic target directory: %USER_DATA_DIR%
+echo Desktop path: %USER_DESKTOP%
+echo Start menu path: %USER_START_MENU%
 
 :CreateDirectories
+echo.
 echo Creating directory structure...
 
 REM Create the directory structure
@@ -88,22 +165,60 @@ mkdir "%USER_DATA_DIR%\logs" 2>nul
 
 REM Check if directories were created successfully
 if not exist "%USER_DATA_DIR%" (
-    echo Error: Failed to create user data directory
-    echo Directory: %USER_DATA_DIR%
+    echo Error: Failed to create user data directory: %USER_DATA_DIR%
+    echo Please check permissions.
     goto :ErrorEnd
 )
 
 echo Successfully created directories
 
-REM Copy data files to user directory
-echo Copying data files...
-copy "%~dp0*.csv" "%USER_DATA_DIR%\" >nul 2>&1
-copy "%~dp0*.png" "%USER_DATA_DIR%\" >nul 2>&1
-copy "%~dp0*.ico" "%USER_DATA_DIR%\" >nul 2>&1
+REM Copy the main executable to user directory first
+echo Copying application files...
+set "FILES_COPIED=0"
+if exist "%~dp0Primus Implant Report Generator 1.0.4.exe" (
+    copy "%~dp0Primus Implant Report Generator 1.0.4.exe" "%USER_DATA_DIR%\" >nul 2>&1
+    if %errorlevel%==0 (
+        echo Copied main executable
+        set /a FILES_COPIED+=1
+    )
+)
 
-REM Create registry entry for user data path (if we have permissions)
+REM Copy data files to user directory
+if exist "%~dp0*.csv" (
+    copy "%~dp0*.csv" "%USER_DATA_DIR%\" >nul 2>&1
+    if %errorlevel%==0 (
+        echo Copied CSV files
+        set /a FILES_COPIED+=1
+    )
+)
+if exist "%~dp0*.png" (
+    copy "%~dp0*.png" "%USER_DATA_DIR%\" >nul 2>&1
+    if %errorlevel%==0 (
+        echo Copied PNG files
+        set /a FILES_COPIED+=1
+    )
+)
+if exist "%~dp0*.ico" (
+    copy "%~dp0*.ico" "%USER_DATA_DIR%\" >nul 2>&1
+    if %errorlevel%==0 (
+        echo Copied ICO files
+        set /a FILES_COPIED+=1
+    )
+)
+
+if %FILES_COPIED%==0 (
+    echo No data files found to copy
+)
+
+REM Set proper ownership of the created directories to the target user
+echo Setting directory ownership...
+icacls "%USER_DATA_DIR%" /setowner "%TARGET_USER%" /t /c >nul 2>&1
+icacls "%USER_DATA_DIR%" /grant "%TARGET_USER%":(OI)(CI)F /t /c >nul 2>&1
+
+REM Create registry entry for user data path
 echo Setting registry entry...
 reg add "HKLM\SOFTWARE\CreoDent\PrimusImplant" /v "UserDataPath" /t REG_SZ /d "%%LOCALAPPDATA%%\CreoDent\PrimusImplant" /f >nul 2>&1
+reg add "HKLM\SOFTWARE\CreoDent\PrimusImplant" /v "InstalledForUser" /t REG_SZ /d "%TARGET_USER%" /f >nul 2>&1
 
 REM Create desktop shortcut
 echo Creating desktop shortcut...
@@ -118,49 +233,74 @@ echo Creating uninstaller...
 call :CreateUninstaller
 
 echo.
+echo ================================================
 echo Setup completed successfully!
+echo ================================================
+echo Application installed for user: %TARGET_USER%
 echo Application data directory: %USER_DATA_DIR%
+echo Desktop shortcut: %USER_DESKTOP%\Primus Implant Report Generator.lnk
+echo Start menu shortcut: %USER_START_MENU%\Primus Implant Report Generator.lnk
+echo ================================================
 echo.
 goto :End
 
 :CreateDesktopShortcut
-REM Get the installation directory
-set "INSTALL_DIR=%~dp0"
-set "EXE_PATH=%INSTALL_DIR%Primus Implant Report Generator 1.0.4.exe"
+REM Set paths to point to the USER's copy of the executable
+set "USER_EXE_PATH=%USER_DATA_DIR%\Primus Implant Report Generator 1.0.4.exe"
+set "SHORTCUT_PATH=%USER_DESKTOP%\Primus Implant Report Generator.lnk"
 
-REM Create desktop shortcut using PowerShell
-if defined USERPROFILE (
-    set "DESKTOP_PATH=%USERPROFILE%\Desktop"
-) else (
-    set "DESKTOP_PATH=%PUBLIC%\Desktop"
+REM Ensure desktop directory exists
+if not exist "%USER_DESKTOP%" mkdir "%USER_DESKTOP%" 2>nul
+
+REM Verify the executable was copied to user directory
+if not exist "%USER_EXE_PATH%" (
+    echo Warning: Executable not found in user directory, using original location
+    set "USER_EXE_PATH=%~dp0Primus Implant Report Generator 1.0.4.exe"
 )
 
-set "SHORTCUT_PATH=%DESKTOP_PATH%\Primus Implant Report Generator.lnk"
+echo Creating desktop shortcut pointing to: %USER_EXE_PATH%
 
-powershell -Command "try { $WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%SHORTCUT_PATH%'); $Shortcut.TargetPath = '%EXE_PATH%'; $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; $Shortcut.IconLocation = '%EXE_PATH%'; $Shortcut.Description = 'Primus Implant Report Generator'; $Shortcut.Save(); Write-Host 'Desktop shortcut created' } catch { Write-Host 'Desktop shortcut failed:' $_.Exception.Message }" 2>nul
+REM Create desktop shortcut using PowerShell (simpler version)
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%SHORTCUT_PATH%'); $Shortcut.TargetPath = '%USER_EXE_PATH%'; $Shortcut.WorkingDirectory = '%USER_DATA_DIR%'; $Shortcut.IconLocation = '%USER_EXE_PATH%'; $Shortcut.Description = 'Primus Implant Report Generator'; $Shortcut.Save()" 2>nul
+
+if exist "%SHORTCUT_PATH%" (
+    echo Desktop shortcut created successfully
+    REM Set ownership of the shortcut
+    icacls "%SHORTCUT_PATH%" /setowner "%TARGET_USER%" /c >nul 2>&1
+) else (
+    echo Warning: Desktop shortcut creation failed
+)
 
 exit /b
 
 :CreateStartMenuShortcut
-REM Create Start Menu shortcut
-if defined APPDATA (
-    set "START_MENU_PATH=%APPDATA%\Microsoft\Windows\Start Menu\Programs\CreoDent"
+REM Ensure Start Menu directory exists
+if not exist "%USER_START_MENU%" mkdir "%USER_START_MENU%" 2>nul
+
+set "START_SHORTCUT_PATH=%USER_START_MENU%\Primus Implant Report Generator.lnk"
+
+echo Creating Start Menu shortcut pointing to: %USER_EXE_PATH%
+
+REM Create Start Menu shortcut using PowerShell (simpler version)
+powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%START_SHORTCUT_PATH%'); $Shortcut.TargetPath = '%USER_EXE_PATH%'; $Shortcut.WorkingDirectory = '%USER_DATA_DIR%'; $Shortcut.IconLocation = '%USER_EXE_PATH%'; $Shortcut.Description = 'Primus Implant Report Generator'; $Shortcut.Save()" 2>nul
+
+if exist "%START_SHORTCUT_PATH%" (
+    echo Start Menu shortcut created successfully
+    REM Set ownership of the shortcut and directory
+    icacls "%USER_START_MENU%" /setowner "%TARGET_USER%" /t /c >nul 2>&1
+    icacls "%START_SHORTCUT_PATH%" /setowner "%TARGET_USER%" /c >nul 2>&1
 ) else (
-    set "START_MENU_PATH=%ALLUSERSPROFILE%\Microsoft\Windows\Start Menu\Programs\CreoDent"
+    echo Warning: Start Menu shortcut creation failed
 )
-
-mkdir "%START_MENU_PATH%" 2>nul
-set "START_SHORTCUT_PATH=%START_MENU_PATH%\Primus Implant Report Generator.lnk"
-
-powershell -Command "try { $WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%START_SHORTCUT_PATH%'); $Shortcut.TargetPath = '%EXE_PATH%'; $Shortcut.WorkingDirectory = '%INSTALL_DIR%'; $Shortcut.IconLocation = '%EXE_PATH%'; $Shortcut.Description = 'Primus Implant Report Generator'; $Shortcut.Save(); Write-Host 'Start Menu shortcut created' } catch { Write-Host 'Start Menu shortcut failed:' $_.Exception.Message }" 2>nul
 
 exit /b
 
 :CreateUninstaller
-REM Create uninstaller script
+REM Create uninstaller script in the user data directory
 (
 echo @echo off
 echo echo Uninstalling Primus Implant Report Generator...
+echo echo Installation was for user: %TARGET_USER%
 echo echo.
 echo.
 echo REM Stop any running instances
@@ -168,12 +308,10 @@ echo taskkill /f /im "Primus Implant Report Generator 1.0.4.exe" 2^>nul
 echo timeout /t 2 /nobreak ^>nul
 echo.
 echo REM Remove desktop shortcut
-echo del "%USERPROFILE%\Desktop\Primus Implant Report Generator.lnk" 2^>nul
-echo del "%PUBLIC%\Desktop\Primus Implant Report Generator.lnk" 2^>nul
+echo del "%USER_DESKTOP%\Primus Implant Report Generator.lnk" 2^>nul
 echo.
 echo REM Remove Start Menu shortcuts
-echo rmdir /s /q "%APPDATA%\Microsoft\Windows\Start Menu\Programs\CreoDent" 2^>nul
-echo rmdir /s /q "%ALLUSERSPROFILE%\Microsoft\Windows\Start Menu\Programs\CreoDent" 2^>nul
+echo rmdir /s /q "%USER_START_MENU%" 2^>nul
 echo.
 echo REM Remove user data directory ^(optional^)
 echo echo.
@@ -182,27 +320,38 @@ echo set /p "REMOVE_DATA="
 echo if /i "%%REMOVE_DATA%%"=="Y" ^(
 echo     echo Removing user data...
 echo     rmdir /s /q "%USER_DATA_DIR%" 2^>nul
+echo ^) else ^(
+echo     echo User data preserved at: %USER_DATA_DIR%
 echo ^)
 echo.
 echo REM Remove registry entries
 echo reg delete "HKLM\SOFTWARE\CreoDent\PrimusImplant" /f 2^>nul
 echo.
 echo echo Uninstallation complete.
+echo echo.
 echo pause
 ) > "%USER_DATA_DIR%\uninstall.bat"
+
+if exist "%USER_DATA_DIR%\uninstall.bat" (
+    echo Uninstaller created successfully
+    REM Set ownership of uninstaller
+    icacls "%USER_DATA_DIR%\uninstall.bat" /setowner "%TARGET_USER%" /c >nul 2>&1
+) else (
+    echo Warning: Uninstaller creation failed
+)
 
 exit /b
 
 :ErrorEnd
 echo.
 echo Installation encountered errors. Please check:
-echo 1. Run as administrator if needed
-echo 2. Ensure user directory is accessible
-echo 3. Check Windows permissions
+echo 1. Verify the target user account exists
+echo 2. Ensure you're running as administrator
+echo 3. Check Windows permissions for user directories
 echo.
 pause
 exit /b 1
 
 :End
 echo Installation script completed.
-timeout /t 5 /nobreak >nul
+timeout /t 3 /nobreak >nul
