@@ -2516,10 +2516,10 @@ del "%~f0"
 
                 "• Begin with the point drill in D4 bone\n"
                 "• Use intermittent drilling (15-30 sec intervals)\n"
-                "• Speed: 800-1200 RPM initial, 600-800 RPM final\n"
+                "• Speeds: 300 RPM tissue punch, 1200 RPM cortical perforator,\n"
+                "  800 RPM shaping drills\n"
                 "• Apply light pressure - let drill do the work\n"
-                "• Use copious irrigation (minimum 50ml/min)\n"
-                "• Check depth with gauge after each drill"
+                "• Use copious irrigation (minimum 50ml/min)"
             ],
             ["POST-DRILLING VERIFICATION", "IMPORTANT NOTES"],
             [
@@ -2527,12 +2527,12 @@ del "%~f0"
                 "• Check final depth and angulation\n"
                 "• Verify diameter with sizing gauge\n"
                 "• Ensure proper guide sleeve function\n"
-                "• Proceed with implant placement protocol",
+                "• Proceed with implant placement protocol\n"
+                "• Implant placement speed & torque: 20 RPM 35 Ncm ",
 
                 "• Follow manufacturer drilling guidelines\n"
                 "• Maintain sterile technique throughout\n"
                 "• Account for offset measurements\n"
-                "• Use depth gauge frequently\n"
                 "• Document any deviations from protocol"
             ]
         ]
