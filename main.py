@@ -2552,23 +2552,22 @@ del "%~f0"
         disclaimer_style: ParagraphStyle = ParagraphStyle(
             'Disclaimer',
             parent=styles['Normal'],
-            fontSize=6,  # Reduced from 8 to 6
+            fontSize=5,  # Reduced from 8 to 6
             textColor=colors.Color(60 / 255, 60 / 255, 60 / 255),
-            spaceBefore=6,  # Reduced from 10
+            spaceBefore=3,  # Reduced from 10
             spaceAfter=3,  # Reduced from 5
             alignment=TA_LEFT,
             leading=7  # Reduced from 10
         )
 
-        story.append(Paragraph("<b>LIMITATION OF LIABILITY:</b>",
-                               ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=7,  # Reduced from 9
-                                              textColor=colors.Color(30 / 255, 58 / 255, 138 / 255))))
+        # REMOVED: The disclaimer title paragraph is no longer added
+        # story.append(Paragraph("<b>LIMITATION OF LIABILITY:</b>",
+        #                        ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=7,  # Reduced from 9
+        #                                       textColor=colors.Color(30 / 255, 58 / 255, 138 / 255))))
 
         disclaimer_text = """This instruction incorporates a custom document that is based on a surgical plan proposed by the surgeon before operation. The surgeon, therefore, takes full medical responsibility for the design and the application of the surgical guide, the intended used surgical tray kit, implants and sleeves – all as specified on the order form received by the supplier. The custom document shall be considered as an addition to all other documents sent with and pertaining to the case, and it does not replace any of those other documents."""
 
         story.append(Paragraph(disclaimer_text, disclaimer_style))
-
-        # Footer removed entirely as requested
 
         # Build PDF
         doc.build(story)
