@@ -239,7 +239,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $filescopied = 0
 
 # Copy main executable
-$mainExe = Join-Path $scriptDir "Primus Implant Report Generator 1.0.4.exe"
+$mainExe = Join-Path $scriptDir "Primus Implant Report Generator 1.0.5.exe"
 if (Test-Path $mainExe) {
     try {
         Copy-Item $mainExe $USER_DATA_DIR -Force
@@ -335,7 +335,7 @@ function New-Shortcut {
 # Create desktop shortcut
 Write-Host ""
 Write-Host "Creating desktop shortcut..." -ForegroundColor Yellow
-$userExePath = Join-Path $USER_DATA_DIR "Primus Implant Report Generator 1.0.4.exe"
+$userExePath = Join-Path $USER_DATA_DIR "Primus Implant Report Generator 1.0.5.exe"
 $desktopShortcutPath = Join-Path $USER_DESKTOP "Primus Implant Report Generator.lnk"
 
 if (-not (Test-Path $userExePath)) {
@@ -385,7 +385,7 @@ Write-Host ""
 
 # Stop any running instances
 try {
-    Get-Process "Primus Implant Report Generator 1.0.4" -ErrorAction Stop | Stop-Process -Force
+    Get-Process "Primus Implant Report Generator 1.0.5" -ErrorAction Stop | Stop-Process -Force
     Start-Sleep -Seconds 2
     Write-Host "Stopped running application instances" -ForegroundColor Green
 }
