@@ -27,8 +27,8 @@ REM Create deployment directory
 mkdir "%DEPLOY_PATH%" 2>nul
 
 REM Copy new executable to deployment location
-if exist "dist\Primus Implant Report Generator 1.0.4.exe" (
-    copy "dist\Primus Implant Report Generator 1.0.4.exe" "%DEPLOY_PATH%\Primus Implant Report Generator.exe"
+if exist "dist\Primus Implant Report Generator 1.0.5.exe" (
+    copy "dist\Primus Implant Report Generator 1.0.5.exe" "%DEPLOY_PATH%\Primus Implant Report Generator.exe"
 ) else (
     echo Error: Built executable not found!
     pause
@@ -49,7 +49,7 @@ copy "Primus Implant List - Primus Implant List.csv" "%DEPLOY_PATH%\" 2>nul
 
 REM Create version info file with detailed information
 (
-echo Version: 1.0.4
+echo Version: 1.0.5
 echo Build Date: %date% %time%
 echo Description: User-level installation update
 echo Executable: Primus Implant Report Generator.exe
@@ -64,7 +64,7 @@ echo - Enhanced PDF report formatting
 REM Create update manifest for version checking
 (
 echo {
-echo   "version": "1.0.4",
+echo   "version": "1.0.5",
 echo   "build_date": "%date% %time%",
 echo   "executable": "Primus Implant Report Generator.exe",
 echo   "size": "%~z0",
@@ -129,7 +129,7 @@ echo.
 REM Create user notification script
 (
 echo @echo off
-echo echo Primus Implant Report Generator Update Available - Version 1.0.4
+echo echo Primus Implant Report Generator Update Available - Version 1.0.5
 echo echo.
 echo echo New Features:
 echo echo - Case Notes: Add special instructions to reports
@@ -151,7 +151,7 @@ echo Update notification script created: %DEPLOY_PATH%\update_notification.bat
 echo.
 echo Deployment Summary:
 echo - Network path: %DEPLOY_PATH%
-echo - Version: 1.0.4
+echo - Version: 1.0.5
 echo - User installations will auto-detect this update
 echo - No admin rights required for end users
 echo.
