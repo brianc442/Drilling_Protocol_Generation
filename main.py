@@ -2406,15 +2406,45 @@ del "%~f0"
             ["Tooth", "Part Number", "Dia.", "Len.", "Offset", "Guide Sleeve", "Drill Length", "Drilling Sequence"]]
 
         for i, plan in enumerate(sorted_plans):
+            def is_valid_drill(value):
+                """Check if drill value is valid (not 'x', empty, or NaN)"""
+                if pd.isna(value):
+                    return False
+                value_str = str(value).lower().strip()
+                return value_str not in ['x', '', 'nan', 'none']
+
             def format_drill_value(value):
-                return "N/A" if str(value).lower().strip() == 'x' else f"{value}mm"
+                """Format drill value only if it's valid"""
+                if not is_valid_drill(value):
+                    return None
+                return f"{value}mm"
 
             is_flapless = plan.get('surgical_approach', 'flapless') == 'flapless'
             approach_instruction = "Tissue punch → Drill to bone → clear tissue" if is_flapless else "Open flap and reflect tissue prior to seating surgical guide"
 
-            drill_sequence = f"<b>{approach_instruction}</b><br/>" \
-                             f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])}<br/>" \
-                             f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
+            # Build drill sequence dynamically, only including valid drills
+            drill_steps = []
+
+            # Check each drill in sequence and only add if valid
+            drill_mapping = [
+                ('Start', plan['implant_data']['Starter Drill']),
+                ('Init1', plan['implant_data']['Initial Drill 1']),
+                ('Init2', plan['implant_data']['Initial Drill 2']),
+                ('D1', plan['implant_data']['Drill 1']),
+                ('D2', plan['implant_data']['Drill 2']),
+                ('D3', plan['implant_data']['Drill 3']),
+                ('D4', plan['implant_data']['Drill 4'])
+            ]
+
+            for drill_name, drill_value in drill_mapping:
+                formatted_value = format_drill_value(drill_value)
+                if formatted_value:  # Only add if drill is valid
+                    drill_steps.append(f"{drill_name}: {formatted_value}")
+
+            # Join the valid drill steps
+            drill_sequence_text = " → ".join(drill_steps) if drill_steps else "No valid drill sequence available"
+
+            drill_sequence = f"<b>{approach_instruction}</b><br/>{drill_sequence_text}"
 
             implant_data.append([
                 str(plan['tooth_number']),
@@ -2516,7 +2546,6 @@ del "%~f0"
                 "• Proceed with implant placement protocol\n"
                 "• Implant placement speed & torque: 20 RPM 35 Ncm ",
 
-                "• Implants must be placed at crest or subcrestal\n"
                 "• Follow manufacturer drilling guidelines\n"
                 "• Maintain sterile technique throughout\n"
                 "• Account for offset measurements\n"
@@ -2549,13 +2578,13 @@ del "%~f0"
         story.append(HRFlowable(width="100%", thickness=1.5, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))
         story.append(Spacer(1, 8))  # Reduced from 10
 
-        # Disclaimer section - smaller font, no footer
+        # Disclaimer section - smaller font, no heading
         disclaimer_style: ParagraphStyle = ParagraphStyle(
             'Disclaimer',
             parent=styles['Normal'],
-            fontSize=5,  # Reduced from 8 to 6
+            fontSize=6,  # Reduced from 8 to 6
             textColor=colors.Color(60 / 255, 60 / 255, 60 / 255),
-            spaceBefore=3,  # Reduced from 10
+            spaceBefore=6,  # Reduced from 10
             spaceAfter=3,  # Reduced from 5
             alignment=TA_LEFT,
             leading=7  # Reduced from 10
@@ -2566,11 +2595,11 @@ del "%~f0"
         #                        ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=7,  # Reduced from 9
         #                                       textColor=colors.Color(30 / 255, 58 / 255, 138 / 255))))
 
-        disclaimer_text = """This document is based on a surgical plan proposed by the physician before the surgery. The physician is entirely responsible for\
-                            the design and all surgical guide tools. User specified documentations are considered additional documents to all other documents\
-                            that are sent together with the case, and do not replace other documents."""
+        disclaimer_text = """This instruction incorporates a custom document that is based on a surgical plan proposed by the surgeon before operation. The surgeon, therefore, takes full medical responsibility for the design and the application of the surgical guide, the intended used surgical tray kit, implants and sleeves – all as specified on the order form received by the supplier. The custom document shall be considered as an addition to all other documents sent with and pertaining to the case, and it does not replace any of those other documents."""
 
         story.append(Paragraph(disclaimer_text, disclaimer_style))
+
+        # Footer removed entirely as requested
 
         # Build PDF
         doc.build(story)
