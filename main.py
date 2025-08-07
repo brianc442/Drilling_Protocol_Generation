@@ -22,8 +22,8 @@ import webbrowser
 from pathlib import Path
 
 # Application version information
-APP_VERSION = "1.0.4"  # Increment version
-APP_BUILD_DATE = "2025-07-22"
+APP_VERSION = "1.0.5"
+APP_BUILD_DATE = "2025-07-25"
 
 
 # User-level paths
@@ -526,6 +526,12 @@ class PrimusImplantApp(ctk.CTk):
         """Bind Enter key to appropriate actions based on current tab"""
 
         def on_enter_pressed(event):
+            # Check if the focus is in the case notes text widget
+            focused_widget = self.focus_get()
+            if focused_widget == self.case_notes_text:
+                # If focus is in case notes, don't trigger the action - just insert newline
+                return
+
             current_tab = self.notebook.get()
             if current_tab == "Add Implant":
                 self.add_implants_to_plan()
@@ -1939,12 +1945,16 @@ del "%~f0"
         self.case_notes_text.bind("<FocusOut>", on_focus_out)
 
     def get_case_notes(self) -> str:
-        """Get case notes, excluding placeholder text"""
+        """Get case notes, excluding placeholder text, preserving line breaks"""
         notes = self.case_notes_text.get("1.0", tk.END).strip()
         placeholder_text = "Enter any special instructions, patient considerations, or case-specific notes here..."
 
         if notes == placeholder_text or not notes:
             return ""
+
+        # Replace single newlines with <br/> for PDF formatting
+        # This preserves line breaks when converted to PDF
+        notes = notes.replace('\n', '<br/>')
         return notes
 
     def get_window_settings_file(self) -> str:
@@ -2298,12 +2308,12 @@ del "%~f0"
 
     def create_pdf_report(self, filename: str, doctor_name: str, patient_name: str, case_number: str,
                           case_notes: str = "", is_preview: bool = False) -> None:
-        """Enhanced PDF report creation with case notes"""
+        """Enhanced PDF report creation with compressed layout"""
         doc: SimpleDocTemplate = SimpleDocTemplate(
             filename,
             pagesize=letter,
-            topMargin=0.5 * inch,
-            bottomMargin=0.5 * inch,
+            topMargin=0.4 * inch,  # Reduced from 0.5
+            bottomMargin=0.4 * inch,  # Reduced from 0.5
             leftMargin=0.5 * inch,
             rightMargin=0.5 * inch,
             title="Primus Implant Report" + (" - Preview" if is_preview else "")
@@ -2311,42 +2321,32 @@ del "%~f0"
         styles = getSampleStyleSheet()
         story: List[Any] = []
 
-        # Custom styles
+        # Custom styles - more compressed
         title_style: ParagraphStyle = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=18,
-            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
+            fontSize=16,  # Reduced from 18
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),
             alignment=TA_CENTER,
-            spaceAfter=20
+            spaceAfter=12  # Reduced from 20
         )
 
         header_style: ParagraphStyle = ParagraphStyle(
             'CustomHeader',
             parent=styles['Heading2'],
-            fontSize=12,
-            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),  # Pantone 7683C - Dark Blue
-            spaceBefore=10,
-            spaceAfter=8
+            fontSize=11,  # Reduced from 12
+            textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),
+            spaceBefore=8,  # Reduced from 10
+            spaceAfter=6  # Reduced from 8
         )
 
-        compact_style: ParagraphStyle = ParagraphStyle(
-            'Compact',
-            parent=styles['Normal'],
-            fontSize=9,
-            spaceBefore=2,
-            spaceAfter=2
-        )
-
-        # Header section with logo and title
+        # Header section with logo and title - more compressed
         header_data = []
-
-        # Add logo to header if it exists
         logo_added: bool = self.add_logo_to_report_header(header_data)
 
         if header_data:
-            # Create header table with logo and title
-            header_table = Table(header_data, colWidths=[3 * inch, 4.5 * inch])
+            # Create header table with smaller dimensions
+            header_table = Table(header_data, colWidths=[2.5 * inch, 4.5 * inch])  # Reduced logo space
             header_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),
                 ('ALIGN', (1, 0), (1, 0), 'CENTER'),
@@ -2361,37 +2361,39 @@ del "%~f0"
             # No logo, just title
             story.append(Paragraph("PRIMUS IMPLANT SURGICAL DRILLING PROTOCOL", title_style))
 
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 10))  # Reduced from 15
 
-        # Case information in compact format
+        # Case information in more compact format
         case_info: List[List[str]] = [
             ["Doctor:", doctor_name, "Date:", datetime.now().strftime("%B %d, %Y")],
             ["Patient:", patient_name, "Time:", datetime.now().strftime("%I:%M %p")],
             ["Case Number:", case_number, "Total Implants:", str(len(self.implant_plans))]
         ]
 
-        case_table: Table = Table(case_info, colWidths=[1 * inch, 2.3 * inch, 1.2 * inch, 1.5 * inch])
+        case_table: Table = Table(case_info,
+                                  colWidths=[0.9 * inch, 2.1 * inch, 1.1 * inch, 1.4 * inch])  # Slightly smaller
         case_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
             ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 10),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),  # Reduced from 10
+            ('TOPPADDING', (0, 0), (-1, -1), 3),  # Reduced from 4
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),  # Reduced from 4
             ('LEFTPADDING', (0, 0), (-1, -1), 4),
             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
             ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
-            ('BACKGROUND', (0, 0), (0, -1), colors.Color(0 / 255, 181 / 255, 216 / 255)),  # Light blue
-            ('BACKGROUND', (2, 0), (2, -1), colors.Color(0 / 255, 181 / 255, 216 / 255)),  # Light blue
+            ('BACKGROUND', (0, 0), (0, -1), colors.Color(0 / 255, 181 / 255, 216 / 255)),
+            ('BACKGROUND', (2, 0), (2, -1), colors.Color(0 / 255, 181 / 255, 216 / 255)),
         ]))
 
         story.append(case_table)
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 10))  # Reduced from 15
 
         # Horizontal line separator
         from reportlab.platypus import HRFlowable
-        story.append(HRFlowable(width="100%", thickness=2, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))
-        story.append(Spacer(1, 10))
+        story.append(
+            HRFlowable(width="100%", thickness=1.5, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))  # Thinner
+        story.append(Spacer(1, 8))  # Reduced from 10
 
         # Sort implant plans by tooth number
         sorted_plans: List[Dict[str, Any]] = sorted(self.implant_plans, key=lambda x: x['tooth_number'])
@@ -2399,21 +2401,17 @@ del "%~f0"
         # Create comprehensive implant summary table
         story.append(Paragraph("IMPLANT SPECIFICATIONS & DRILLING PROTOCOL", header_style))
 
-        # Main implant data table with better column sizing
+        # Main implant data table - keep existing column sizing
         implant_data = [
             ["Tooth", "Part Number", "Dia.", "Len.", "Offset", "Guide Sleeve", "Drill Length", "Drilling Sequence"]]
 
         for i, plan in enumerate(sorted_plans):
-            # Create drilling sequence string with surgical approach instructions
-            # Handle 'x' values in drilling sequence
             def format_drill_value(value):
                 return "N/A" if str(value).lower().strip() == 'x' else f"{value}mm"
 
-            # Determine approach text
             is_flapless = plan.get('surgical_approach', 'flapless') == 'flapless'
             approach_instruction = "Tissue punch → Drill to bone → clear tissue" if is_flapless else "Open flap and reflect tissue prior to seating surgical guide"
 
-            # Create drilling sequence with approach instruction and consistent font
             drill_sequence = f"<b>{approach_instruction}</b><br/>" \
                              f"Start: {format_drill_value(plan['implant_data']['Starter Drill'])} → Init1: {format_drill_value(plan['implant_data']['Initial Drill 1'])} → Init2: {format_drill_value(plan['implant_data']['Initial Drill 2'])}<br/>" \
                              f"D1: {format_drill_value(plan['implant_data']['Drill 1'])} → D2: {format_drill_value(plan['implant_data']['Drill 2'])} → D3: {format_drill_value(plan['implant_data']['Drill 3'])} → D4: {format_drill_value(plan['implant_data']['Drill 4'])}"
@@ -2433,53 +2431,43 @@ del "%~f0"
                                                          leading=8))
             ])
 
-        # Better balanced column widths - adjusted for overflow issues
+        # Keep existing column widths
         col_widths = [
-            0.35 * inch,  # Tooth - slightly smaller
-            0.7 * inch,  # Part Number - fits PBF4010S
-            0.35 * inch,  # Diameter
-            0.45 * inch,  # Length - widened
-            0.4 * inch,  # Offset
-            0.8 * inch,  # Guide Sleeve - increased for CGSC-5304
-            0.65 * inch,  # Drill Length - widened
-            2.9 * inch  # Drilling Sequence - slightly reduced to compensate
+            0.35 * inch, 0.7 * inch, 0.35 * inch, 0.45 * inch,
+            0.4 * inch, 0.8 * inch, 0.65 * inch, 2.9 * inch
         ]
 
         implant_table: Table = Table(implant_data, colWidths=col_widths, repeatRows=1)
-
         implant_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('FONTSIZE', (0, 1), (6, -1), 7),  # Smaller font for data to prevent overflow
-            ('TOPPADDING', (0, 0), (-1, -1), 3),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ('FONTSIZE', (0, 1), (6, -1), 7),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),  # Reduced from 3
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),  # Reduced from 3
             ('LEFTPADDING', (0, 0), (-1, -1), 2),
             ('RIGHTPADDING', (0, 0), (-1, -1), 2),
             ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(30 / 255, 58 / 255, 138 / 255)),  # Dark blue header
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(30 / 255, 58 / 255, 138 / 255)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            # Better text wrapping and overflow handling
-            ('WORDWRAP', (1, 1), (1, -1), True),  # Part Number
-            ('WORDWRAP', (5, 1), (5, -1), True),  # Guide Sleeve
-            ('WORDWRAP', (7, 1), (7, -1), True),  # Drilling Sequence
-            # Prevent text overflow
+            ('WORDWRAP', (1, 1), (1, -1), True),
+            ('WORDWRAP', (5, 1), (5, -1), True),
+            ('WORDWRAP', (7, 1), (7, -1), True),
             ('OVERFLOW', (0, 0), (-1, -1), 'CLIP'),
         ]))
 
         story.append(implant_table)
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 10))  # Reduced from 15
 
-        # Add case notes if they exist
+        # Add case notes if they exist - with proper line break handling
         if case_notes:
-            story.append(Spacer(1, 15))
+            story.append(Spacer(1, 10))
 
-            # Case Notes section
             story.append(Paragraph("CASE NOTES", header_style))
 
-            # Create case notes box
+            # Create case notes style that handles HTML line breaks
             case_notes_style = ParagraphStyle(
                 'CaseNotes',
                 parent=styles['Normal'],
@@ -2487,20 +2475,20 @@ del "%~f0"
                 leading=12,
                 leftIndent=10,
                 rightIndent=10,
-                spaceBefore=8,
-                spaceAfter=8,
+                spaceBefore=6,  # Reduced from 8
+                spaceAfter=6,  # Reduced from 8
                 borderWidth=1,
                 borderColor=colors.Color(14 / 255, 165 / 255, 233 / 255),
-                borderPadding=10,
+                borderPadding=8,  # Reduced from 10
                 backColor=colors.Color(248 / 255, 249 / 255, 250 / 255)
             )
 
             story.append(Paragraph(case_notes, case_notes_style))
-            story.append(Spacer(1, 15))
+            story.append(Spacer(1, 10))
 
         # Horizontal line separator
         story.append(HRFlowable(width="100%", thickness=1, color=colors.Color(14 / 255, 165 / 255, 233 / 255)))
-        story.append(Spacer(1, 10))
+        story.append(Spacer(1, 8))  # Reduced from 10
 
         # Compact surgical protocol in two columns
         story.append(Paragraph("SURGICAL PROTOCOL", header_style))
@@ -2516,8 +2504,7 @@ del "%~f0"
 
                 "• Begin with the point drill in D4 bone\n"
                 "• Use intermittent drilling (15-30 sec intervals)\n"
-                "• Speeds: 300 RPM tissue punch, 1200 RPM cortical perforator,\n"
-                "  800 RPM shaping drills\n"
+                "• Speeds: 300-800 RPM tissue punch, cortical perforator, shaping drills\n"
                 "• Apply light pressure - let drill do the work\n"
                 "• Use copious irrigation (minimum 50ml/min)"
             ],
@@ -2526,7 +2513,6 @@ del "%~f0"
                 "• Irrigate osteotomy thoroughly\n"
                 "• Check final depth and angulation\n"
                 "• Verify diameter with sizing gauge\n"
-                "• Ensure proper guide sleeve function\n"
                 "• Proceed with implant placement protocol\n"
                 "• Implant placement speed & torque: 20 RPM 35 Ncm ",
 
@@ -2543,98 +2529,81 @@ del "%~f0"
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),  # Reduced from 9
+            ('TOPPADDING', (0, 0), (-1, -1), 6),  # Reduced from 8
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),  # Reduced from 8
             ('LEFTPADDING', (0, 0), (-1, -1), 6),
             ('RIGHTPADDING', (0, 0), (-1, -1), 6),
             ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
-            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(14 / 255, 165 / 255, 233 / 255)),  # Medium blue
-            ('BACKGROUND', (0, 2), (-1, 2), colors.Color(14 / 255, 165 / 255, 233 / 255)),  # Medium blue
+            ('BACKGROUND', (0, 0), (-1, 0), colors.Color(14 / 255, 165 / 255, 233 / 255)),
+            ('BACKGROUND', (0, 2), (-1, 2), colors.Color(14 / 255, 165 / 255, 233 / 255)),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
             ('TEXTCOLOR', (0, 2), (-1, 2), colors.white),
         ]))
 
         story.append(protocol_table)
-        story.append(Spacer(1, 15))
+        story.append(Spacer(1, 10))  # Reduced from 15
 
         # Final horizontal line
-        story.append(HRFlowable(width="100%", thickness=2, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))
-        story.append(Spacer(1, 10))
+        story.append(HRFlowable(width="100%", thickness=1.5, color=colors.Color(30 / 255, 58 / 255, 138 / 255)))
+        story.append(Spacer(1, 8))  # Reduced from 10
 
-        # Disclaimer section
+        # Disclaimer section - smaller font, no footer
         disclaimer_style: ParagraphStyle = ParagraphStyle(
             'Disclaimer',
             parent=styles['Normal'],
-            fontSize=8,
+            fontSize=6,  # Reduced from 8 to 6
             textColor=colors.Color(60 / 255, 60 / 255, 60 / 255),
-            spaceBefore=10,
-            spaceAfter=5,
+            spaceBefore=6,  # Reduced from 10
+            spaceAfter=3,  # Reduced from 5
             alignment=TA_LEFT,
-            leading=10
+            leading=7  # Reduced from 10
         )
 
         story.append(Paragraph("<b>LIMITATION OF LIABILITY:</b>",
-                               ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=9,
+                               ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=7,  # Reduced from 9
                                               textColor=colors.Color(30 / 255, 58 / 255, 138 / 255))))
 
         disclaimer_text = """This instruction incorporates a custom document that is based on a surgical plan proposed by the surgeon before operation. The surgeon, therefore, takes full medical responsibility for the design and the application of the surgical guide, the intended used surgical tray kit, implants and sleeves – all as specified on the order form received by the supplier. The custom document shall be considered as an addition to all other documents sent with and pertaining to the case, and it does not replace any of those other documents."""
 
         story.append(Paragraph(disclaimer_text, disclaimer_style))
-        story.append(Spacer(1, 10))
 
-        # Footer
-        footer_text: str = f"""<b>Report Generated:</b> {datetime.now().strftime("%B %d, %Y at %I:%M %p")} | <b>Software:</b> Primus Implant Report Generator v{APP_VERSION}"""
-
-        story.append(Paragraph(
-            footer_text,
-            ParagraphStyle('Footer', parent=styles['Normal'],
-                           fontSize=7, textColor=colors.grey, alignment=TA_CENTER)
-        ))
+        # Footer removed entirely as requested
 
         # Build PDF
         doc.build(story)
 
     def add_logo_to_report_header(self, header_data: List[List[Any]]) -> bool:
-        """Add logo to header data for table layout"""
+        """Add logo to header data for table layout - more compact version"""
         logo_files: List[str] = [
-            "inosys_logo.png",
-            "inosys_logo.jpg",
-            "inosys_logo.jpeg",
-            "logo.png",
-            "logo.jpg",
-            "logo.jpeg",
-            "icon.png",
-            "icon.jpg",
-            "icon.jpeg"
+            "inosys_logo.png", "inosys_logo.jpg", "inosys_logo.jpeg",
+            "logo.png", "logo.jpg", "logo.jpeg",
+            "icon.png", "icon.jpg", "icon.jpeg"
         ]
 
         for logo_file in logo_files:
             if os.path.exists(logo_file):
                 try:
-                    # Get original image dimensions to maintain aspect ratio
                     with PILImage.open(logo_file) as pil_image:
                         original_width, original_height = pil_image.size
                         aspect_ratio = original_width / original_height
 
-                        # Set desired height and calculate width to maintain aspect ratio
-                        desired_height = 0.6 * inch
+                        # Smaller logo for more compact layout
+                        desired_height = 0.5 * inch  # Reduced from 0.6
                         calculated_width = desired_height * aspect_ratio
 
-                        # Create logo image for PDF with proper aspect ratio
                         logo_image = Image(logo_file, width=calculated_width, height=desired_height)
 
-                        # Create title paragraph
-                        title_para = Paragraph("PRIMUS DENTAL IMPLANT<br/><br/>SURGICAL DRILLING PROTOCOL",
+                        # More compact title paragraph
+                        title_para = Paragraph("PRIMUS IMPLANT<br/>SURGICAL DRILLING PROTOCOL",
                                                ParagraphStyle('HeaderTitle',
-                                                              fontSize=16,
+                                                              fontSize=14,  # Reduced from 16
                                                               textColor=colors.Color(30 / 255, 58 / 255, 138 / 255),
                                                               alignment=TA_CENTER,
                                                               fontName='Helvetica-Bold',
-                                                              leading=20))
+                                                              leading=16))  # Reduced from 20
 
                         header_data.append([logo_image, title_para])
-
                         print(f"Logo added to PDF header from {logo_file}")
                         return True
 
