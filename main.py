@@ -2516,6 +2516,7 @@ del "%~f0"
                 "• Proceed with implant placement protocol\n"
                 "• Implant placement speed & torque: 20 RPM 35 Ncm ",
 
+                "• Implants must be placed at crest or subcrestal\n"
                 "• Follow manufacturer drilling guidelines\n"
                 "• Maintain sterile technique throughout\n"
                 "• Account for offset measurements\n"
