@@ -2565,7 +2565,9 @@ del "%~f0"
         #                        ParagraphStyle('DisclaimerTitle', parent=disclaimer_style, fontSize=7,  # Reduced from 9
         #                                       textColor=colors.Color(30 / 255, 58 / 255, 138 / 255))))
 
-        disclaimer_text = """This instruction incorporates a custom document that is based on a surgical plan proposed by the surgeon before operation. The surgeon, therefore, takes full medical responsibility for the design and the application of the surgical guide, the intended used surgical tray kit, implants and sleeves – all as specified on the order form received by the supplier. The custom document shall be considered as an addition to all other documents sent with and pertaining to the case, and it does not replace any of those other documents."""
+        disclaimer_text = """This document is based on a surgical plan proposed by the physician before the surgery. The physician is entirely responsible for\
+                            the design and all surgical guide tools. User specified documentations are considered additional documents to all other documents\
+                            that are sent together with the case, and do not replace other documents."""
 
         story.append(Paragraph(disclaimer_text, disclaimer_style))
 
