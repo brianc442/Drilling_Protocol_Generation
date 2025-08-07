@@ -23,7 +23,7 @@ from pathlib import Path
 
 # Application version information
 APP_VERSION = "1.0.5"
-APP_BUILD_DATE = "2025-07-25"
+APP_BUILD_DATE = "2025-08-07"
 
 
 # User-level paths
